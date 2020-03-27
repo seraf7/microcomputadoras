@@ -1,0 +1,10 @@
+Manejo de un display de cristal líquido mediante lenguaje ensamblador
+
+Modos de funcionamiento:
+
+0: escribir hola en el display
+1: escribir nuestro nombre
+2: escribir la entrada de datos en formato hexadecimal
+3: escribir la entrada en formato binario
+4: escribir la entrada en formato decimal
+5: dibujar el puma en el display
