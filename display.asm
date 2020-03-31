@@ -171,42 +171,27 @@ hexadecimal:
 
 ;Rutina para imprimir la entrada en formato binario
 binario:
+	movlw d'8'
+	movwf contador
 	movlw h'80'
 	call comando
 	movf PORTD,0			;Lee puerto D
 	movwf dato				;Guarda entrada en dato
-	btfsc PORTD,7			;Verifica bit 7 de la entrada
-	movlw a'1'				;El dato es 1
-	movlw a'0'				;El dato es 0
+verifica:
+	btfsc dato,0
+	goto es_1				;Bit es 1
+	goto es_0				;Bit es 0
+es_1:
+	movlw a'1'
 	call datos
-	btfss dato,6			;Verifica bit 7 de la entrada
-	movlw h'31'				;El dato es 1
-	movlw h'30'				;El dato es 0
+	goto dec_con
+es_0:
+	movlw a'0'
 	call datos
-	btfsc dato,5			;Verifica bit 7 de la entrada
-	movlw h'31'				;El dato es 1
-	movlw h'30'				;El dato es 0
-	call datos
-	btfsc dato,4			;Verifica bit 7 de la entrada
-	movlw h'31'				;El dato es 1
-	movlw h'30'				;El dato es 0
-	call datos
-	btfsc dato,3			;Verifica bit 7 de la entrada
-	movlw h'31'				;El dato es 1
-	movlw h'30'				;El dato es 0
-	call datos
-	btfsc dato,2			;Verifica bit 7 de la entrada
-	movlw h'31'				;El dato es 1
-	movlw h'30'				;El dato es 0
-	call datos
-	btfsc dato,1			;Verifica bit 7 de la entrada
-	movlw h'31'				;El dato es 1
-	movlw h'30'				;El dato es 0
-	call datos
-	btfsc dato,0			;Verifica bit 7 de la entrada
-	movlw h'31'				;El dato es 1
-	movlw h'30'				;El dato es 0
-	call datos
+dec_con:
+	rrf dato
+	decfsz contador
+	goto verifica	
 	call retardo_1seg		;Mantiene la señal
 	movf PORTA,0			;Lectura del puerto A
 	xorlw h'03'				;Valida que el valor del puerto A
