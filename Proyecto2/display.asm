@@ -58,11 +58,14 @@ modo:
 	movf opc,0				;W = opc, opcion ingresada
 	btfsc STATUS,Z
 	goto hola				;opc = 0
+	xorlw h'01'				;Comparacion con 01H			
+	btfsc STATUS,Z
+	goto nombre				;opc = 1
 	goto otrom
 
 ;Rutina para imprimir HOLA
 hola:
-	movlw h'80'				;Cursor en el extremo superior derecho
+	movlw h'80'				;Cursor en posicion (1, 1)
 	call comando			;Envia comando al display
 	movlw a'H'				;W = H, ascii
 	call datos				;Enviar caracter al display
@@ -78,6 +81,46 @@ hola:
 	btfsc STATUS,Z
 	goto hola				;Puerto A en 0
 	goto modo				;Puerto A cambio de valor
+
+;Rutina para imprimir nombres
+nombre:
+	movlw h'80'				;Cursor en posicion (1, 1)
+	call comando			;Envia comando al display
+	movlw a'S'				;W = S, ascii
+	call datos				;Envia caracter al display
+	movlw a'A'
+	call datos
+	movlw a'N'
+	call datos
+	movlw a'D'
+	call datos
+	movlw a'R'
+	call datos
+	movlw a'A'
+	call datos
+	movlw h'c0'				;Cursor en posicion (1,2)
+	call comando
+	movlw a'S'				;W = S, ascii
+	call datos				;Envia caracter al display
+	movlw a'E'
+	call datos
+	movlw a'R'
+	call datos
+	movlw a'A'
+	call datos
+	movlw a'F'
+	call datos
+	movlw a'I'
+	call datos
+	movlw a'N'
+	call datos
+	call retardo_1seg		;Mantiene la señal
+	movf PORTA,0			;Lectura del puerto A
+	xorlw h'01'				;Valida que el valor del puerto A
+	btfsc STATUS,Z
+	goto nombre				;Puerto A en 0
+	goto modo				;Puerto A cambio de valor
+
 
 ;Envio de datos al display 
 otrom:
