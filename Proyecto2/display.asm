@@ -23,6 +23,8 @@ val2 equ h'26'
 val3 equ h'27'
 
 opc equ h'28'
+hexL equ h'29'
+hexH equ h'30'
 
     org 0
     goto inicio
@@ -43,6 +45,7 @@ inicio:
 	clrf TRISE				;TRISE como salida
 	movlw h'ff'
 	movwf TRISA				;TRISA como entrada
+	movwf TRISD				;TRISD como entrada
 	bcf STATUS,RP0			;Cambio al banco 0
 
 	call inicia_lcd			;Inicializacion del display
@@ -51,6 +54,8 @@ inicio:
 modo:
 	movlw h'01'
 	call comando			;Borrado del display
+	movf PORTD,0
+	movwf dato
 	movf PORTA,0			;Lectura del puerto A
 	andlw h'03'				;Mascara para descartar bits no usados
 	movwf opc				;Guardar opcion registrada
@@ -61,6 +66,14 @@ modo:
 	xorlw h'01'				;Comparacion con 01H			
 	btfsc STATUS,Z
 	goto nombre				;opc = 1
+	movf opc,0
+	xorlw h'02'				;Comparacion con 02H			
+	btfsc STATUS,Z
+	goto hexadecimal		;opc = 2
+	movf opc,0
+	xorlw h'03'				;Comparacion con 03H
+	btfsc STATUS,Z
+	goto binario			;opc = 3
 	goto otrom
 
 ;Rutina para imprimir HOLA
@@ -118,9 +131,76 @@ nombre:
 	movf PORTA,0			;Lectura del puerto A
 	xorlw h'01'				;Valida que el valor del puerto A
 	btfsc STATUS,Z
-	goto nombre				;Puerto A en 0
+	goto nombre				;Puerto A en 1
 	goto modo				;Puerto A cambio de valor
 
+;Rutina para desplegar valor de entrada en hexadecimal
+hexadecimal:
+	;Aplicacion de mascaras en los registros
+	movlw h'0f'
+	movwf hexL
+	movlw h'f0'
+	movwf hexH
+	;Separacion de parte alta y baja
+	movf PORTD,0			;Lee el puerto D
+	andwf hexL,1			;Guarda la parte baja del registro
+	andwf hexH,1			;Guarda la parte alta del registro
+	;Ajuste de la parte alta
+	rrf hexH,1				;Rotaciones a la derecha
+	rrf hexH,1
+	rrf hexH,1
+	rrf hexH,1
+	movf hexL,0
+	call ascii				;Obtiene valor ascii de parte baja
+	movwf hexL
+	movf hexH,0
+	call ascii				;Obtiene valor ascii de parte alta
+	movwf hexH
+	movlw 0x80				;Cursor en el extremo superior derecho
+	call comando			;Envia comando al display
+	movf hexH
+	call datos				;Envia ascii de parte alta al display
+	movf hexL
+	call datos				;Envia ascii de parte baja al display
+	call retardo_1seg		;Mantiene la señal
+	movf PORTA,0			;Lectura del puerto A
+	xorlw h'02'				;Valida que el valor del puerto A
+	btfsc STATUS,Z
+	goto hexadecimal		;Puerto A en 2
+	goto modo				;Puerto A cambio de valor
+
+;Rutina para imprimir la entrada en formato binario
+binario:
+	movf PORTD,0			;Lee puerto D
+	movwf dato				;Guarda entrada en dato
+	movlw h'80'
+	call comando
+	movlw d'8'
+	movwf contador			;Inicializa contador con 8
+verifica:
+	btfsc STATUS,Z			;Verifica si se ha llegado a 0
+	goto interrupcion		;Contador ha llegado a 0
+	btfsc dato,7
+	goto es_1				;Bit es 1
+	goto es_0				;Bit es 0
+es_1:
+	movlw a'1'
+	call datos
+	goto dec_con
+es_0:
+	movlw a'0'
+	call datos
+dec_con:
+	rlf dato
+	decf contador
+	goto verifica
+interrupcion:	
+	call retardo_1seg		;Mantiene la señal
+	movf PORTA,0			;Lectura del puerto A
+	xorlw h'03'				;Valida que el valor del puerto A
+	btfsc STATUS,Z
+	goto binario			;Puerto A en 3
+	goto modo				;Puerto A cambio de valor
 
 ;Envio de datos al display 
 otrom:
@@ -176,6 +256,24 @@ datos:
     call ret200
     call ret200
     return
+
+;Rutina para obtener el representacion ascii de un caracter
+ascii:
+	movwf dato
+	;Verificar si es mayor a 9
+	sublw d'9'
+	btfss STATUS,C
+	goto mayor9			;Valor mayor a 9
+	movf dato,0
+	addlw h'30'			;Suma 30 para obtener ascii del numero
+	movwf dato
+	goto salir
+mayor9:
+	movf dato,0
+	addlw d'55'			;Suma 55 para obtener ascii de A - F
+	movwf dato
+salir:
+	return
 
 ;Rutina de retardo de 200 milisegundos
 ret200:
