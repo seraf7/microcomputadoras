@@ -22,6 +22,8 @@ val1 equ h'25'
 val2 equ h'26'
 val3 equ h'27'
 
+opc equ h'28'
+
     org 0
     goto inicio
 	org 5
@@ -39,9 +41,43 @@ inicio:
 	movlw 0x07
 	movwf ADCON1			;Uso digital del registro
 	clrf TRISE				;TRISE como salida
+	movlw h'ff'
+	movwf TRISA				;TRISA como entrada
 	bcf STATUS,RP0			;Cambio al banco 0
 
 	call inicia_lcd			;Inicializacion del display
+
+;Seleccion del modo
+modo:
+	movlw h'01'
+	call comando			;Borrado del display
+	movf PORTA,0			;Lectura del puerto A
+	andlw h'03'				;Mascara para descartar bits no usados
+	movwf opc				;Guardar opcion registrada
+	;Validacion de la entrada
+	movf opc,0				;W = opc, opcion ingresada
+	btfsc STATUS,Z
+	goto hola				;opc = 0
+	goto otrom
+
+;Rutina para imprimir HOLA
+hola:
+	movlw h'80'				;Cursor en el extremo superior derecho
+	call comando			;Envia comando al display
+	movlw a'H'				;W = H, ascii
+	call datos				;Enviar caracter al display
+	movlw a'O'				;W = O, ascii
+	call datos
+	movlw a'L'
+	call datos
+	movlw a'A'
+	call datos
+	call retardo_1seg		;Mantiene la señal
+	movf PORTA,0			;Lectura del puerto A
+	xorlw h'00'				;Valida que el valor del puerto A
+	btfsc STATUS,Z
+	goto hola				;Puerto A en 0
+	goto modo				;Puerto A cambio de valor
 
 ;Envio de datos al display 
 otrom:
@@ -52,7 +88,7 @@ otrom:
 	movlw a'I'				;W = 49H
 	call datos
 	call retardo_1seg		;Mantiene la señal
-	goto otrom
+	goto modo
    
 ;Rutina de incializacion del display
 inicia_lcd:
