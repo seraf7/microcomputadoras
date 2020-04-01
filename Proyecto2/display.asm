@@ -177,6 +177,10 @@ binario:
 	call comando
 	movlw d'8'
 	movwf contador			;Inicializa contador con 8
+	movf dato,0				;W=dato
+	xorlw h'00'
+	btfsc STATUS,Z
+	goto cero_binario
 verifica:
 	btfsc STATUS,Z			;Verifica si se ha llegado a 0
 	goto interrupcion		;Contador ha llegado a 0
@@ -201,7 +205,14 @@ interrupcion:
 	btfsc STATUS,Z
 	goto binario			;Puerto A en 3
 	goto modo				;Puerto A cambio de valor
-
+cero_binario:
+	btfsc STATUS,Z			;Verifica si se ha llegado a 0
+	goto interrupcion		;Contador ha llegado a 0	
+	movlw a'0'
+	call datos
+	decf contador
+	goto cero_binario
+	
 ;Envio de datos al display 
 otrom:
 	movlw 0x80				;Cursor en el extremo superior derecho
