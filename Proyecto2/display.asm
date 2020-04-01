@@ -23,6 +23,17 @@ val2 equ h'26'
 val3 equ h'27'
 
 opc equ h'28'
+hexL equ h'29'
+hexH equ h'30'
+
+nume equ h'31'
+denom equ h'32'
+resultado equ h'33'
+residuo equ h'34'
+
+DEC_2 equ H'35'; Centenas
+DEC_1 equ H'36'; Decenas
+DEC_0 equ H'37'; Unidades
 
     org 0
     goto inicio
@@ -43,6 +54,7 @@ inicio:
 	clrf TRISE				;TRISE como salida
 	movlw h'ff'
 	movwf TRISA				;TRISA como entrada
+	movwf TRISD				;TRISD como entrada
 	bcf STATUS,RP0			;Cambio al banco 0
 
 	call inicia_lcd			;Inicializacion del display
@@ -51,8 +63,10 @@ inicio:
 modo:
 	movlw h'01'
 	call comando			;Borrado del display
+	movf PORTD,0
+	movwf dato
 	movf PORTA,0			;Lectura del puerto A
-	andlw h'03'				;Mascara para descartar bits no usados
+	andlw h'07'				;Mascara para descartar bits no usados
 	movwf opc				;Guardar opcion registrada
 	;Validacion de la entrada
 	movf opc,0				;W = opc, opcion ingresada
@@ -61,7 +75,20 @@ modo:
 	xorlw h'01'				;Comparacion con 01H			
 	btfsc STATUS,Z
 	goto nombre				;opc = 1
-	goto otrom
+	movf opc,0
+	xorlw h'02'				;Comparacion con 02H			
+	btfsc STATUS,Z
+	goto hexadecimal		;opc = 2
+	movf opc,0
+	xorlw h'03'				;Comparacion con 03H
+	btfsc STATUS,Z
+	goto binario			;opc = 3
+	movf opc,0
+	xorlw h'04'				;Comparacion con 04H
+	btfsc STATUS,Z
+	goto decimal			;opc = 4
+	goto otrom	
+
 
 ;Rutina para imprimir HOLA
 hola:
@@ -118,8 +145,187 @@ nombre:
 	movf PORTA,0			;Lectura del puerto A
 	xorlw h'01'				;Valida que el valor del puerto A
 	btfsc STATUS,Z
-	goto nombre				;Puerto A en 0
+	goto nombre				;Puerto A en 1
 	goto modo				;Puerto A cambio de valor
+
+;Rutina para desplegar valor de entrada en hexadecimal
+hexadecimal:
+	;Aplicacion de mascaras en los registros
+	movlw h'0f'
+	movwf hexL
+	movlw h'f0'
+	movwf hexH
+	;Separacion de parte alta y baja
+	movf PORTD,0			;Lee el puerto D
+	andwf hexL,1			;Guarda la parte baja del registro
+	andwf hexH,1			;Guarda la parte alta del registro
+	;Ajuste de la parte alta
+	rrf hexH,1				;Rotaciones a la derecha
+	rrf hexH,1
+	rrf hexH,1
+	rrf hexH,1
+	movf hexL,0
+	call ascii				;Obtiene valor ascii de parte baja
+	movwf hexL
+	movf hexH,0
+	call ascii				;Obtiene valor ascii de parte alta
+	movwf hexH
+	movlw 0x80				;Cursor en el extremo superior derecho
+	call comando			;Envia comando al display
+	movf hexH
+	call datos				;Envia ascii de parte alta al display
+	movf hexL
+	call datos				;Envia ascii de parte baja al display
+	call retardo_1seg		;Mantiene la señal
+	movf PORTA,0			;Lectura del puerto A
+	xorlw h'02'				;Valida que el valor del puerto A
+	btfsc STATUS,Z
+	goto hexadecimal		;Puerto A en 2
+	goto modo				;Puerto A cambio de valor
+
+;Rutina para imprimir la entrada en formato binario
+binario:
+	movf PORTD,0			;Lee puerto D
+	movwf dato				;Guarda entrada en dato
+	movlw h'80'
+	call comando
+	movlw d'9'
+	movwf contador			;Inicializa contador con 8
+	movf dato,0				;W=dato
+	xorlw h'00'
+	btfsc STATUS,Z
+	goto cero_binario
+	decf contador
+verifica:
+	btfsc STATUS,Z			;Verifica si se ha llegado a 0
+	goto interrupcion		;Contador ha llegado a 0
+	btfsc dato,7
+	goto es_1				;Bit es 1
+	goto es_0				;Bit es 0
+es_1:
+	movlw a'1'
+	call datos
+	goto dec_con
+es_0:
+	movlw a'0'
+	call datos
+dec_con:
+	rlf dato
+	decf contador
+	goto verifica
+interrupcion:	
+	call retardo_1seg		;Mantiene la señal
+	movf PORTA,0			;Lectura del puerto A
+	xorlw h'03'				;Valida que el valor del puerto A
+	btfsc STATUS,Z
+	goto binario			;Puerto A en 3
+	goto modo				;Puerto A cambio de valor
+cero_binario:
+	decf contador
+	btfsc STATUS,Z			;Verifica si se ha llegado a 0
+	goto interrupcion		;Contador ha llegado a 0	
+	movlw a'0'
+	call datos
+	goto cero_binario
+
+;Rutina para desplegar valor de entrada en decimal
+decimal:
+	;Inicializacion valores
+	movlw h'00' 
+	movwf DEC_2 ;DEC_2='00'
+ 	movwf DEC_1 ;DEC_1='00'
+	movwf DEC_0 ;DEC_0='00'
+	
+	;;;División entre 100
+divi_100:	
+	;Primero dividimos el numero hexadeciamal entre d'100' h'64'
+	movf PORTD,0 			;W=PORTD
+	movwf dato
+	movwf nume  			;nume=W
+	movlw h'64' 			;d'100'
+	movwf denom  			;denom=100
+	call divi  				;port/100
+
+	;;;División entre 10
+divi_10: 
+	movf residuo,0 			;W=residuo->PORTD/100
+	movwf nume  			;nume=W
+	movlw h'0A' 			;d'10'
+	movwf denom  			;denom=10
+	movf resultado,0 		;W=resultado
+	call ascii
+	movwf DEC_2  			;DEC_2=W  CENTENAS
+	call divi  				;residuo_100/10
+
+	;;;División entre 1
+divi_1: 
+	movf residuo,0  		;W=residuo->PORTD/10
+	movwf nume  			;nume=W
+	movlw h'01' 			;d'01'
+	movwf denom  			;denom=1
+	movf resultado,0 		;W=resultado
+	call ascii
+	movwf DEC_1  			;DEC_1=W  DECENAS
+	call divi  				;residuo_10/1
+    movf resultado,0  		;W=resultado 
+	call ascii 
+   	movwf DEC_0  			;DEC_0=W UNIDADES
+
+	movlw 0x80				;Cursor en el extremo superior derecho
+	call comando			;Envia comando al display
+	movf DEC_2,0
+	call datos
+	movf DEC_1,0
+	call datos
+	movf DEC_0,0
+	call datos 
+	call retardo_1seg		;Mantiene la señal
+	goto modo
+
+;;;DIVISION;;;
+divi:
+	;inicializamos
+	movlw d'0'
+	movwf resultado  		;R=0
+	movwf residuo 			;residuo=0
+	;Comprobamos denominador
+	movf denom,0
+	btfsc STATUS,Z
+	goto indeterminada 		;Z=1
+	;Comprobamos numenador
+	movf nume,0
+	btfsc STATUS,Z
+	goto cero  				;Z=1
+
+iteracion:
+	movf denom,0
+	subwf nume,1			;X = X - Y
+	btfsc STATUS,Z
+	goto mismo				;numerador = denominador 
+	btfss STATUS,C 			;Z=0 comprobamos signo de operación
+	goto resto				;C=0 negativo ya no se pudo dividir mas 
+	incf resultado			;C=1 positivo  resultado = resultado + 1
+	goto iteracion
+
+indeterminada: 
+	movlw h'FF'
+	movwf resultado  		;R=FF
+	return 
+
+cero: ;0/* =0
+	clrf residuo   			;residuo=0
+	clrf resultado 			;resultado=0
+	return 
+
+mismo: ;X/X
+	clrf residuo   			;residuo=0
+	incf resultado 			;Solo cabe una vez 
+	return 
+
+resto:
+	addwf nume,0 ;W=W+X
+	movwf residuo
+	return 
 
 
 ;Envio de datos al display 
@@ -176,6 +382,24 @@ datos:
     call ret200
     call ret200
     return
+
+;Rutina para obtener el representacion ascii de un caracter
+ascii:
+	movwf dato
+	;Verificar si es mayor a 9
+	sublw d'9'
+	btfss STATUS,C
+	goto mayor9			;Valor mayor a 9
+	movf dato,0
+	addlw h'30'			;Suma 30 para obtener ascii del numero
+	movwf dato
+	goto salir
+mayor9:
+	movf dato,0
+	addlw d'55'			;Suma 55 para obtener ascii de A - F
+	movwf dato
+salir:
+	return
 
 ;Rutina de retardo de 200 milisegundos
 ret200:
