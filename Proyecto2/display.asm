@@ -35,6 +35,10 @@ DEC_2 equ H'35'; Centenas
 DEC_1 equ H'36'; Decenas
 DEC_0 equ H'37'; Unidades
 
+valor7 equ h'38'
+valor8 equ h'39'
+valor9 equ h'40'
+
     org 0
     goto inicio
 	org 5
@@ -87,6 +91,10 @@ modo:
 	xorlw h'04'				;Comparacion con 04H
 	btfsc STATUS,Z
 	goto decimal			;opc = 4
+	movf opc,0
+	xorlw h'05'				;Comparacion con 05H
+	btfsc STATUS,Z
+	goto puma			;opc = 5
 	goto otrom	
 
 
@@ -327,6 +335,84 @@ resto:
 	movwf residuo
 	return 
 
+;Subrutina para la impresion del logo de los pumas
+puma:
+	;Definicion de caracter 1
+	movlw h'40'			;Acceso a la CGRAM (posicion 1)
+	call comando
+	call retardo8
+	;Escritura por renglones del caracter especial
+	movlw h'07'			;Definicion de pixeles renglon 1
+	call datos
+	call retardo8		;Retardo para que termine proceso
+	movlw h'1f'			;Definicion de pixeles renglon 2
+	call datos
+	call retardo8
+	movlw h'09'
+	call datos
+	call retardo8
+	movlw h'0d'
+	call datos
+	call retardo8
+	movlw h'04'
+	call datos
+	call retardo8
+	movlw h'06'
+	call datos
+	call retardo8
+	movlw h'00'
+	call datos
+	call retardo8
+	movlw h'03'
+	call datos
+	call retardo8
+
+	call inicia_lcd
+	
+;Definicion de la segunda mitad del caracter
+	movlw h'48'			;Acceso a la CGRAM (Caracter 2)
+	call comando
+	call retardo8
+	;Escritura por renglones del caracter especial
+	movlw h'1C'
+	call datos
+	call retardo8
+	movlw h'1f'
+	call datos
+	call retardo8
+	movlw h'12'
+	call datos
+	call retardo8
+	movlw h'16'
+	call datos
+	call retardo8
+	movlw h'04'
+	call datos
+	call retardo8
+	movlw h'0c'
+	call datos
+	call retardo8
+	movlw h'00'
+	call datos
+	call retardo8
+	movlw h'18'
+	call datos
+	call retardo8
+
+	;Impresion del los carcateres
+imp_puma:
+	call inicia_lcd	
+	movlw h'00'					;Caracter 0 definido
+	call datos	
+	movlw h'01'					;Caracter 1 definido
+	call datos	
+	call retardo_1seg
+	movf PORTA,0			;Lectura del puerto A
+	xorlw h'05'				;Valida que el valor del puerto A
+	btfsc STATUS,Z
+	goto imp_puma				;Puerto A en 1
+	goto modo				;Puerto A cambio de valor
+	
 
 ;Envio de datos al display 
 otrom:
@@ -452,5 +538,24 @@ lp_1:
 	decfsz val1
 	goto lp_3
 	return
-	
+
+;Subrutina de retardo de aproximadamente 800useg
+retardo8: 
+	movlw h'36'
+	movwf valor7
+nueve:
+	movlw h'9f'
+	movwf valor8
+ocho: 
+	movlw h'8d'
+	movwf valor9
+siete: 
+	decfsz valor9,1
+	goto siete
+	decfsz valor8,1
+	goto ocho
+	decfsz valor7,1
+	goto nueve
+	return
+
 	end
