@@ -35,10 +35,6 @@ DEC_2 equ H'35'; Centenas
 DEC_1 equ H'36'; Decenas
 DEC_0 equ H'37'; Unidades
 
-valor7 equ h'38'
-valor8 equ h'39'
-valor9 equ h'40'
-
     org 0
     goto inicio
 	org 5
@@ -544,17 +540,6 @@ puma_2:
 	call retardo_1seg
 	call retardo_1seg
 	goto modo	
-
-;Envio de datos al display 
-otrom:
-	movlw 0x80				;Cursor en el extremo superior derecho
-	call comando			;Envia comando al display
-	movlw a'F'				;W = 46H
-	call datos				;Envia datos al display
-	movlw a'I'				;W = 49H
-	call datos
-	call retardo_1seg		;Mantiene la señal
-	goto modo
    
 ;Rutina de incializacion del display
 inicia_lcd:
@@ -668,25 +653,6 @@ lp_1:
 	goto lp_2
 	decfsz val1
 	goto lp_3
-	return
-
-;Subrutina de retardo de aproximadamente 800useg
-retardo8: 
-	movlw h'36'
-	movwf valor7
-nueve:
-	movlw h'9f'
-	movwf valor8
-ocho: 
-	movlw h'8d'
-	movwf valor9
-siete: 
-	decfsz valor9,1
-	goto siete
-	decfsz valor8,1
-	goto ocho
-	decfsz valor7,1
-	goto nueve
 	return
 
 	end
