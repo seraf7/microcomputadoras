@@ -337,81 +337,58 @@ resto:
 
 ;Subrutina para la impresion del logo de los pumas
 puma:
+	call inicia_lcd
 	;Definicion de caracter 1
 	movlw h'40'			;Acceso a la CGRAM (posicion 1)
 	call comando
-	call retardo8
 	;Escritura por renglones del caracter especial
 	movlw h'07'			;Definicion de pixeles renglon 1
 	call datos
-	call retardo8		;Retardo para que termine proceso
 	movlw h'1f'			;Definicion de pixeles renglon 2
 	call datos
-	call retardo8
 	movlw h'09'
 	call datos
-	call retardo8
 	movlw h'0d'
 	call datos
-	call retardo8
 	movlw h'04'
 	call datos
-	call retardo8
 	movlw h'06'
 	call datos
-	call retardo8
 	movlw h'00'
 	call datos
-	call retardo8
 	movlw h'03'
-	call datos
-	call retardo8
-
-	call inicia_lcd
-	
+	call datos	
 ;Definicion de la segunda mitad del caracter
 	movlw h'48'			;Acceso a la CGRAM (Caracter 2)
 	call comando
-	call retardo8
 	;Escritura por renglones del caracter especial
 	movlw h'1C'
 	call datos
-	call retardo8
 	movlw h'1f'
 	call datos
-	call retardo8
 	movlw h'12'
 	call datos
-	call retardo8
 	movlw h'16'
 	call datos
-	call retardo8
 	movlw h'04'
 	call datos
-	call retardo8
 	movlw h'0c'
 	call datos
-	call retardo8
 	movlw h'00'
 	call datos
-	call retardo8
 	movlw h'18'
 	call datos
-	call retardo8
-
-	;Impresion del los carcateres
-imp_puma:
-	call inicia_lcd	
+	call inicia_lcd
+;Impresion del los carcateres
+	movlw h'80'
+	call comando
 	movlw h'00'					;Caracter 0 definido
 	call datos	
 	movlw h'01'					;Caracter 1 definido
 	call datos	
 	call retardo_1seg
-	movf PORTA,0			;Lectura del puerto A
-	xorlw h'05'				;Valida que el valor del puerto A
-	btfsc STATUS,Z
-	goto imp_puma				;Puerto A en 1
-	goto modo				;Puerto A cambio de valor
+	call retardo_1seg
+	goto modo				;Regresa a validar modo de entrada
 	
 
 ;Envio de datos al display 
