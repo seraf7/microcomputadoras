@@ -35,6 +35,10 @@ DEC_2 equ H'35'; Centenas
 DEC_1 equ H'36'; Decenas
 DEC_0 equ H'37'; Unidades
 
+valor7 equ h'38'
+valor8 equ h'39'
+valor9 equ h'40'
+
     org 0
     goto inicio
 	org 5
@@ -87,7 +91,11 @@ modo:
 	xorlw h'04'				;Comparacion con 04H
 	btfsc STATUS,Z
 	goto decimal			;opc = 4
-	goto otrom	
+	movf opc,0
+	xorlw h'05'				;Comparacion con 05H
+	btfsc STATUS,Z
+	goto puma_2			;opc = 5
+	goto puma	
 
 
 ;Rutina para imprimir HOLA
@@ -172,9 +180,9 @@ hexadecimal:
 	movwf hexH
 	movlw 0x80				;Cursor en el extremo superior derecho
 	call comando			;Envia comando al display
-	movf hexH
+	movf hexH,0
 	call datos				;Envia ascii de parte alta al display
-	movf hexL
+	movf hexL,0
 	call datos				;Envia ascii de parte baja al display
 	call retardo_1seg		;Mantiene la señal
 	movf PORTA,0			;Lectura del puerto A
@@ -280,6 +288,10 @@ divi_1:
 	movf DEC_0,0
 	call datos 
 	call retardo_1seg		;Mantiene la señal
+	movf PORTA,0			;Lectura del puerto A
+	xorlw h'04'				;Valida que el valor del puerto A
+	btfsc STATUS,Z
+	goto decimal			;Puerto A en 4
 	goto modo
 
 ;;;DIVISION;;;
@@ -327,6 +339,211 @@ resto:
 	movwf residuo
 	return 
 
+;Subrutina para la impresion del logo de los pumas
+puma:
+	call inicia_lcd
+	;Definicion de caracter 1
+	movlw h'40'			;Acceso a la CGRAM (posicion 1)
+	call comando
+	;Escritura por renglones del caracter especial
+	movlw h'07'			;Definicion de pixeles renglon 1
+	call datos
+	movlw h'1f'			;Definicion de pixeles renglon 2
+	call datos
+	movlw h'09'
+	call datos
+	movlw h'0d'
+	call datos
+	movlw h'04'
+	call datos
+	movlw h'06'
+	call datos
+	movlw h'00'
+	call datos
+	movlw h'03'
+	call datos	
+;Definicion de la segunda mitad del caracter
+	movlw h'48'			;Acceso a la CGRAM (Caracter 2)
+	call comando
+	;Escritura por renglones del caracter especial
+	movlw h'1C'
+	call datos
+	movlw h'1f'
+	call datos
+	movlw h'12'
+	call datos
+	movlw h'16'
+	call datos
+	movlw h'04'
+	call datos
+	movlw h'0c'
+	call datos
+	movlw h'00'
+	call datos
+	movlw h'18'
+	call datos
+	call inicia_lcd
+;Impresion del los carcateres
+	movlw h'80'
+	call comando
+	movlw h'00'					;Caracter 0 definido
+	call datos	
+	movlw h'01'					;Caracter 1 definido
+	call datos	
+	call retardo_1seg
+	call retardo_1seg
+	goto modo				;Regresa a validar modo de entrada
+	
+puma_2:
+	call inicia_lcd
+	;Definicion de caracter 1
+	movlw h'40'			;Acceso a la CGRAM (posicion 1)
+	call comando
+	;Escritura por renglones del caracter especial
+	movlw h'00'			;Definicion de pixeles renglon 1
+	call datos
+	movlw h'03'			
+	call datos
+	movlw h'1f'			
+	call datos
+	movlw h'1f'			
+	call datos
+	movlw h'0f'			
+	call datos
+	movlw h'0C'			
+	call datos
+	movlw h'0E'			
+	call datos
+	movlw h'0F'			
+	call datos
+
+	;Definicion de caracter 2
+	movlw h'48'			;Acceso a la CGRAM (posicion 2)
+	call comando
+	;Escritura por renglones del caracter especial
+	movlw h'1F'			;Definicion de pixeles renglon 1
+	call datos
+	movlw h'1F'			
+	call datos
+	movlw h'1f'			
+	call datos
+	movlw h'1f'			
+	call datos
+	movlw h'1F'			
+	call datos
+	movlw h'0E'			
+	call datos
+	movlw h'0E'			
+	call datos	
+	movlw h'0E'			
+	call datos
+
+	;Definicion de caracter 3
+	movlw h'50'			;Acceso a la CGRAM (posicion 3)
+	call comando
+	;Escritura por renglones del caracter especial
+	movlw h'00'			;Definicion de pixeles renglon 1
+	call datos
+	movlw h'18'			
+	call datos
+	movlw h'1f'			
+	call datos
+	movlw h'1f'			
+	call datos
+	movlw h'1E'			
+	call datos
+	movlw h'06'			
+	call datos
+	movlw h'0E'			
+	call datos	
+	movlw h'1E'			
+	call datos
+
+	;Definicion de caracter 4
+	movlw h'58'			;Acceso a la CGRAM (posicion 4)
+	call comando
+	;Escritura por renglones del caracter especial
+	movlw h'07'			;Definicion de pixeles renglon 1
+	call datos
+	movlw h'06'			
+	call datos
+	movlw h'06'			
+	call datos
+	movlw h'04'			
+	call datos
+	movlw h'07'			
+	call datos
+	movlw h'00'			
+	call datos
+	movlw h'00'			
+	call datos	
+	movlw h'00'			
+	call datos
+
+	;Definicion de caracter 5
+	movlw h'60'			;Acceso a la CGRAM (posicion 5)
+	call comando
+	;Escritura por renglones del caracter especial
+	movlw h'0E'			;Definicion de pixeles renglon 1
+	call datos
+	movlw h'0E'			
+	call datos
+	movlw h'1F'			
+	call datos
+	movlw h'00'			
+	call datos
+	movlw h'11'			
+	call datos
+	movlw h'00'			
+	call datos
+	movlw h'1F'			
+	call datos	
+	movlw h'00'			
+	call datos
+
+	;Definicion de caracter 6
+	movlw h'68'			;Acceso a la CGRAM (posicion 6)
+	call comando
+	;Escritura por renglones del caracter especial
+	movlw h'1C'			;Definicion de pixeles renglon 1
+	call datos
+	movlw h'0C'			
+	call datos
+	movlw h'0C'			
+	call datos
+	movlw h'04'			
+	call datos
+	movlw h'1C'			
+	call datos
+	movlw h'00'			
+	call datos
+	movlw h'00'			
+	call datos	
+	movlw h'00'			
+	call datos
+	
+	call inicia_lcd
+
+	;Impresion del los carcateres
+	movlw h'80'
+	call comando
+	movlw h'00'					;Caracter 0 definido
+	call datos	
+	movlw h'01'					;Caracter 1 definido
+	call datos
+	movlw h'02'					;Caracter 2 definido
+	call datos
+	movlw h'c0'				;Cursor en posicion (1,2)
+	call comando
+	movlw h'03'					;Caracter 3 definido
+	call datos
+	movlw h'04'					;Caracter 4 definido
+	call datos
+	movlw h'05'					;Caracter 5 definido
+	call datos
+	call retardo_1seg
+	call retardo_1seg
+	goto modo	
 
 ;Envio de datos al display 
 otrom:
@@ -452,5 +669,24 @@ lp_1:
 	decfsz val1
 	goto lp_3
 	return
-	
+
+;Subrutina de retardo de aproximadamente 800useg
+retardo8: 
+	movlw h'36'
+	movwf valor7
+nueve:
+	movlw h'9f'
+	movwf valor8
+ocho: 
+	movlw h'8d'
+	movwf valor9
+siete: 
+	decfsz valor9,1
+	goto siete
+	decfsz valor8,1
+	goto ocho
+	decfsz valor7,1
+	goto nueve
+	return
+
 	end
