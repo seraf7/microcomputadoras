@@ -37,6 +37,10 @@ DEC_0 equ H'37'; Unidades
 
 contador equ H'38'; Unidades
 
+c0  equ H'39'
+c1  equ H'40'
+c2  equ H'41'
+
     org 0
     goto inicio
 	org 5
@@ -83,10 +87,10 @@ modo:
 	xorlw h'02'				;Comparacion con 02H			
 	btfsc STATUS,Z
 	goto binario			;opc = 2
-	;movf opc,0
-	;xorlw h'03'				;Comparacion con 03H
-	;btfsc STATUS,Z
-	;goto voltaje			;opc = 3
+	movf opc,0
+	xorlw h'03'				;Comparacion con 03H
+	btfsc STATUS,Z
+	goto voltaje			;opc = 3
 	goto modo
  
 ;Rutina para imprimir valor decimal del registro
@@ -270,6 +274,66 @@ cero_binario:
 	movlw a'0'
 	call datos
 	goto cero_binario
+
+;Rutina para imprimir valor de voltaje
+voltaje:
+	call conversion
+	movf conv,0				;Lee valor del CAD
+	movwf dato
+	movlw h'00'
+	movwf c0
+	movwf c1
+	movwf c2
+ciclo:
+	movf dato,0				;W=dato
+	sublw h'00'
+	btfsc STATUS,C
+	goto imprime	
+	decf dato					;C=0 negativo mayor a 0
+	movf c0,0
+	xorlw d'08'
+	btfss STATUS,Z
+	goto cont_0					;C0=8
+	movlw h'00'					;C=0 
+	movwf c0
+	movf c1,0
+	sublw d'09'
+	btfss STATUS,Z
+	goto cont_1	
+	movlw h'00'					;C=0 negativo mayor a 9
+	movwf c1
+	incf c2
+	goto ciclo				
+	
+cont_0:
+	incf c0
+	incf c0
+	goto ciclo
+cont_1:
+	incf c1
+	goto ciclo
+imprime:
+	movf c2,0
+	call ascii				;Obtiene valor ascii de parte baja
+	movwf c2
+	movf c1,0
+	call ascii				;Obtiene valor ascii de parte baja
+	movwf c1
+	movf c0,0
+	call ascii				;Obtiene valor ascii de parte baja
+	movwf c0
+	movf c2,0
+	call datos
+	movlw a'.'
+	call datos
+	movf c1,0
+	call datos
+	movf c0,0
+	call datos
+	movlw a'V'
+	call datos
+	call retardo_1seg
+	goto modo
 
 ;Rutina de incializacion del display
 inicia_lcd:
