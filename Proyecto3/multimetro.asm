@@ -45,19 +45,18 @@ voltaje:
 	movwf c2
 verifica:
 	movf dato,0				;W=dato
-	sublw h'00'
-	btfsc STATUS,C
+	btfsc STATUS,Z
 	goto imprime	
 	decf dato					;C=0 negativo mayor a 0
 	movf c0,0
-	sublw d'09'
-	btfsc STATUS,C
+	sublw d'08'
+	btfss STATUS,Z
 	goto cont_0
 	movlw h'00'					;C=0 negativo mayor a 9
 	movwf c0
 	movf c1,0
 	sublw d'09'
-	btfsc STATUS,C
+	btfss STATUS,Z
 	goto cont_1	
 	movlw h'00'					;C=0 negativo mayor a 9
 	movwf c1
