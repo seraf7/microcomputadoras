@@ -35,6 +35,8 @@ DEC_2 equ H'35'; Centenas
 DEC_1 equ H'36'; Decenas
 DEC_0 equ H'37'; Unidades
 
+contador equ H'38'; Unidades
+
     org 0
     goto inicio
 	org 5
@@ -45,11 +47,13 @@ inicio:
 	clrf PORTB
 	clrf PORTA
 	clrf PORTD
+	clrf PORTC
 	;Configuracion de puertos
 	bsf STATUS,RP0
 	bcf STATUS,RP1			;Cambio al banco 1
 	clrf TRISB				;TRISB como salida
 	clrf TRISE				;TRISE como salida
+	clrf TRISC				;TRISC como salida
 	movlw h'ff'
 	movwf TRISD				;TRISD como entrada
 	;Configuracion del CAD
@@ -65,10 +69,25 @@ modo:
 	movlw h'01'
 	call comando			;Borrado del display
 	movf PORTD,0			;Lectura del puerto D
-	andlw h'00000111'		;Mascara para descartar bits no usados
+	andlw b'00000111'		;Mascara para descartar bits no usados
 	movwf opc				;Guardar opcion registrada
 	;Validacion de la entrada
+	movf opc,0				;W = opc, opcion ingresada
+	btfsc STATUS,Z
 	goto decimal			;opc = 0
+	movf opc,0
+	xorlw h'01'				;Comparacion con 01H			
+	btfsc STATUS,Z
+	goto hexadecimal		;opc = 1
+	movf opc,0
+	xorlw h'02'				;Comparacion con 02H			
+	btfsc STATUS,Z
+	goto binario			;opc = 2
+	;movf opc,0
+	;xorlw h'03'				;Comparacion con 03H
+	;btfsc STATUS,Z
+	;goto voltaje			;opc = 3
+	goto modo
  
 ;Rutina para imprimir valor decimal del registro
 decimal:
@@ -116,14 +135,11 @@ divi_1:
 
 	movlw 0x80				;Cursor en el extremo superior derecho
 	call comando			;Envia comando al display
-	;movf DEC_2,0
-	movlw a'0'
+	movf DEC_2,0
 	call datos
-	;movf DEC_1,0
-	movlw a'0'
+	movf DEC_1,0
 	call datos
-	;movf DEC_0,0
-	movlw a'0'
+	movf DEC_0,0
 	call datos 
 	call retardo_1seg		;Mantiene la señal
 	goto modo			;Va a rutina de conversion
@@ -173,6 +189,88 @@ resto:
 	movwf residuo
 	return
 
+;Rutina para desplegar valor de entrada en hexadecimal
+hexadecimal:
+	;Aplicacion de mascaras en los registros
+	movlw h'0f'
+	movwf hexL
+	movlw h'f0'
+	movwf hexH
+	call conversion
+	;Separacion de parte alta y baja
+	movf conv,0				;Valor del CAD
+	andwf hexL,1			;Guarda la parte baja del registro
+	andwf hexH,1			;Guarda la parte alta del registro
+	;Ajuste de la parte alta
+	rrf hexH,1				;Rotaciones a la derecha
+	rrf hexH,1
+	rrf hexH,1
+	rrf hexH,1
+	movf hexL,0
+	call ascii				;Obtiene valor ascii de parte baja
+	movwf hexL
+	movf hexH,0
+	call ascii				;Obtiene valor ascii de parte alta
+	movwf hexH
+	movlw 0x80				;Cursor en el extremo superior derecho
+	call comando			;Envia comando al display
+	movf hexH,0
+	call datos				;Envia ascii de parte alta al display
+	movf hexL,0
+	call datos				;Envia ascii de parte baja al display
+	call retardo_1seg		;Mantiene la señal
+	movf PORTD,0			;Lectura del puerto D
+	xorlw h'01'				;Valida que el valor del puerto D
+	btfsc STATUS,Z
+	goto hexadecimal		;Puerto D en 1
+	goto modo				;Puerto D cambio de valor
+
+;Rutina para imprimir la entrada en formato binario
+binario:
+	call conversion
+	movf conv,0				;Lee valor del CAD
+	movwf dato				;Guarda entrada en dato
+	movlw h'80'
+	call comando
+	movlw d'9'
+	movwf contador			;Inicializa contador con 8
+	movf dato,0				;W=dato
+	xorlw h'00'
+	btfsc STATUS,Z
+	goto cero_binario
+	decf contador
+verifica:
+	btfsc STATUS,Z			;Verifica si se ha llegado a 0
+	goto interrupcion		;Contador ha llegado a 0
+	btfsc dato,7
+	goto es_1				;Bit es 1
+	goto es_0				;Bit es 0
+es_1:
+	movlw a'1'
+	call datos
+	goto dec_con
+es_0:
+	movlw a'0'
+	call datos
+dec_con:
+	rlf dato
+	decf contador
+	goto verifica
+interrupcion:	
+	call retardo_1seg		;Mantiene la señal
+	movf PORTD,0			;Lectura del puerto D
+	xorlw h'02'				;Valida que el valor del puerto D
+	btfsc STATUS,Z
+	goto binario			;Puerto D en 2
+	goto modo				;Puerto D cambio de valor
+cero_binario:
+	decf contador
+	btfsc STATUS,Z			;Verifica si se ha llegado a 0
+	goto interrupcion		;Contador ha llegado a 0	
+	movlw a'0'
+	call datos
+	goto cero_binario
+
 ;Rutina de incializacion del display
 inicia_lcd:
 	movlw 0x30
@@ -197,10 +295,10 @@ inicia_lcd:
 comando:
 	movwf PORTB 
     call ret200
-    bcf PORTE,0
-    bsf PORTE,1
+    bcf PORTC,0
+    bsf PORTC,1
     call ret200
-    bcf PORTE,1
+    bcf PORTC,1
 	call ret200
 	call ret200
     return
@@ -209,10 +307,10 @@ comando:
 datos:
 	movwf PORTB
     call ret200
-    bsf PORTE,0
-    bsf PORTE,1
+    bsf PORTC,0
+    bsf PORTC,1
     call ret200
-    bcf PORTE,1
+    bcf PORTC,1
     call ret200
     call ret200
     return
@@ -241,7 +339,7 @@ conversion:
 espera:
 	btfsc ADCON0,2			;Verifica si terminó la conversión
 	goto espera				;Va a espera si la conversión continua
-	movf ADRESH,W			;W = valor convertido
+	movf ADRESH,W			;W = valor convertido	
 	movwf conv				;conv = W
 	return
 
