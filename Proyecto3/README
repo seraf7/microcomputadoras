@@ -1,0 +1,6 @@
+Implementacion de un voltimetro con el CAD, se despliegan los valores convertidos segun la siguiente codificacion
+
+0: decimal      (255)
+1: hexadecimal  (0xFF)
+2: binario      (11111111)
+3: voltaje      (5.00 V)
