@@ -149,7 +149,7 @@ divi_1:
 	movlw 0x80				;Cursor en el extremo superior derecho
 	call comando			;Envia comando al display
 	movf DEC_2,0			;W = DEC_2
-	movwf TXREG				;TXREG = DEC_2
+	movwf TXREG				;TXREG = DEC_2, dato para transmitir
 	call datos				;Envio de datos al display
 	call transmite			;Envio de datos al puerto serial
 	movf DEC_1,0
@@ -235,9 +235,14 @@ hexadecimal:
 	movlw 0x80				;Cursor en el extremo superior derecho
 	call comando			;Envia comando al display
 	movf hexH,0
+	movwf TXREG
 	call datos				;Envia ascii de parte alta al display
+	call transmite			;Envia ascii de parte alta al puerto serial
 	movf hexL,0
+	movwf TXREG
 	call datos				;Envia ascii de parte baja al display
+	call transmite			;Envia ascii de parte alta al puerto serial
+	call salto
 	call retardo_1seg		;Mantiene la señal
 	movf PORTD,0			;Lectura del puerto D
 	xorlw h'01'				;Valida que el valor del puerto D
@@ -267,16 +272,21 @@ verifica:
 	goto es_0				;Bit es 0
 es_1:
 	movlw a'1'
-	call datos
+	movwf TXREG
+	call datos				;Envia datos al display
+	call transmite			;Envia datos al puerto serial
 	goto dec_con
 es_0:
 	movlw a'0'
-	call datos
+	movwf TXREG
+	call datos				;Envia datos al display
+	call transmite			;Envia datos al puerto serial
 dec_con:
 	rlf dato
 	decf contador
 	goto verifica
-interrupcion:	
+interrupcion:
+	call salto				;Imprime salto de linea	
 	call retardo_1seg		;Mantiene la señal
 	movf PORTD,0			;Lectura del puerto D
 	xorlw h'02'				;Valida que el valor del puerto D
@@ -288,7 +298,9 @@ cero_binario:
 	btfsc STATUS,Z			;Verifica si se ha llegado a 0
 	goto interrupcion		;Contador ha llegado a 0	
 	movlw a'0'
+	movwf TXREG
 	call datos
+	call transmite
 	goto cero_binario
 
 ;Rutina para imprimir valor de voltaje
@@ -339,15 +351,26 @@ imprime:
 	call ascii				;Obtiene valor ascii de parte baja
 	movwf c0
 	movf c2,0
-	call datos
+	movwf TXREG
+	call datos				;Envia datos al display
+	call transmite			;Envia datos al puerto serial
 	movlw a'.'
-	call datos
+	movwf TXREG
+	call datos				;Envia datos al display
+	call transmite			;Envia datos al puerto serial
 	movf c1,0
-	call datos
+	movwf TXREG
+	call datos				;Envia datos al display
+	call transmite			;Envia datos al puerto serial
 	movf c0,0
-	call datos
+	movwf TXREG
+	call datos				;Envia datos al display
+	call transmite			;Envia datos al puerto serial
 	movlw a'V'
-	call datos
+	movwf TXREG
+	call datos				;Envia datos al display
+	call transmite			;Endia datos al puerto serial
+	call salto				;Imprime salto de linea
 	call retardo_1seg
 	goto modo
 
