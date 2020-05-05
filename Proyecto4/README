@@ -1,0 +1,3 @@
+Voltmetro con comunicación serial.
+
+Se realiza el despliegue de un valor analógico en un display y también a través de comunicación serial hacia la terminal de una computadora
