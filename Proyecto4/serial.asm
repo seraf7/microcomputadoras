@@ -41,6 +41,8 @@ c0  equ H'39'
 c1  equ H'40'
 c2  equ H'41'
 
+datoRx equ H'42'
+
     org 0
     goto inicio
 	org 5
@@ -74,14 +76,23 @@ inicio:
 	movwf ADCON0			;lectura de canal 0, activación del CAD
 
 	bsf RCSTA,SPEN			;Habilitacion del puerto serie
-
+	bsf RCSTA,CREN			;CREN=1 SE HABILITA AL RECEPTOR
+	
 	call inicia_lcd			;Inicializacion del display
+
+
+;Rutina de recepcion serial
+recibe:
+	btfss PIR1,RCIF		;Se verifica que se haya recibido un dato
+	goto recibe			;RCIF=0 Recepción en proceso
+	movf RCREG,W		;RCIF=1 Recepción completa,
+	movwf datoRx			;Carga daots en REGISTRO de RECEPCIÓN
 
 ;Seleccion del modo
 modo:
 	movlw h'01'
 	call comando			;Borrado del display
-	movf PORTD,0			;Lectura del puerto D
+	movf datoRx,0				;Lectura del dato
 	andlw b'00000111'		;Mascara para descartar bits no usados
 	movwf opc				;Guardar opcion registrada
 	;Validacion de la entrada
@@ -89,15 +100,15 @@ modo:
 	btfsc STATUS,Z
 	goto decimal			;opc = 0
 	movf opc,0
-	xorlw h'01'				;Comparacion con 01H			
+	xorlw a'1'				;Comparacion con 01H			
 	btfsc STATUS,Z
 	goto hexadecimal		;opc = 1
 	movf opc,0
-	xorlw h'02'				;Comparacion con 02H			
+	xorlw a'2'				;Comparacion con 02H			
 	btfsc STATUS,Z
 	goto binario			;opc = 2
 	movf opc,0
-	xorlw h'03'				;Comparacion con 03H
+	xorlw a'3'				;Comparacion con 03H
 	btfsc STATUS,Z
 	goto voltaje			;opc = 3
 	goto modo
@@ -244,12 +255,7 @@ hexadecimal:
 	call transmite			;Envia ascii de parte alta al puerto serial
 	call salto
 	call retardo_1seg		;Mantiene la señal
-	movf PORTD,0			;Lectura del puerto D
-	xorlw h'01'				;Valida que el valor del puerto D
-	btfsc STATUS,Z
-	goto hexadecimal		;Puerto D en 1
-	goto modo				;Puerto D cambio de valor
-
+	goto recibe				;
 ;Rutina para imprimir la entrada en formato binario
 binario:
 	call conversion
@@ -288,11 +294,7 @@ dec_con:
 interrupcion:
 	call salto				;Imprime salto de linea	
 	call retardo_1seg		;Mantiene la señal
-	movf PORTD,0			;Lectura del puerto D
-	xorlw h'02'				;Valida que el valor del puerto D
-	btfsc STATUS,Z
-	goto binario			;Puerto D en 2
-	goto modo				;Puerto D cambio de valor
+	goto recibe	
 cero_binario:
 	decf contador
 	btfsc STATUS,Z			;Verifica si se ha llegado a 0
@@ -372,7 +374,7 @@ imprime:
 	call transmite			;Endia datos al puerto serial
 	call salto				;Imprime salto de linea
 	call retardo_1seg
-	goto modo
+	goto recibe	
 
 ;Rutina de incializacion del display
 inicia_lcd:
@@ -454,6 +456,7 @@ esp:
 	goto esp				;TRMT = 0, transmision en proceso
 	bcf STATUS,RP0			;Cambio al banco de memoria 0
 	return
+
 
 ;Rutina para imprimir un salto de linea
 salto:
