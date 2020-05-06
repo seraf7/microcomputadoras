@@ -12,7 +12,7 @@ import tkinter
 
 
 #Creamos puerto serial
-puerto=serial.Serial('COM4',9600)
+puerto=serial.Serial('COM1',9600)
 #Tiempo hasta recibir caracter
 puerto.timeout=3
 time.sleep(2)
@@ -35,8 +35,8 @@ def on():
 #	volt_btn.pack(padx=20, pady=25)
 	volt_btn.place(x= 40,y=290)
 
-	dato.set(puerto.readline())
-	#pantallaOn['text']=dato
+	dato=puerto.readline()
+	pantallaOn['text']=dato
 
 	
 
@@ -56,13 +56,13 @@ def off():
 
 def hexa():
 	print("Hexadecimal")
-	opcion="1"
+	opcion='1'
 	cadena=opcion.encode('utf-8')
 	puerto.write(cadena)
 	on()
 
 def deci():
-	opcion="0"
+	opcion='0'
 	cadena=opcion.encode('utf-8')
 	puerto.write(cadena)
 	print("Decimal")
@@ -70,23 +70,19 @@ def deci():
 
 def bina():
 	print("Binario")
-	opcion="2"
+	opcion='2'
 	cadena=opcion.encode('utf-8')
 	puerto.write(cadena)
 	on()
 
 def volt():
 	print("Volt")
-	opcion="3"
+	opcion='3'
 	cadena=opcion.encode('utf-8')
 	puerto.write(cadena)
 	on()
 
 
-
-opcion="0"
-cadena=opcion.encode('utf-8')
-puerto.write(cadena)
 
 
 #Creamos ventana y damos dimensiones
@@ -95,7 +91,7 @@ ventana.geometry('700x550')
 ventana.configure(bg = 'black')
 ventana.title("Volmetro")
 
-dato=StringVar()
+dato="Elige Modo"
 
 #Imagenes que usaremos
 logoFI=PhotoImage(file="escudo_fi_color.png")
@@ -104,7 +100,7 @@ logoUNAM=PhotoImage(file="escudounam_negro.png")
 #Definicion de etiquetas 
 titulo = Label( ventana, text="Volmetro \n PIC16F887A", relief=RAISED, fg="green", bg='black', justify=CENTER, font=("fixedsys", 34),
 	highlightcolor='white')
-pantallaOn=Label( ventana, textvariable=dato, relief=RAISED, fg="green", bg='white', justify=CENTER, font=("fixedsys", 50),
+pantallaOn=Label( ventana, text=dato, relief=RAISED, fg="green", bg='white', justify=CENTER, font=("fixedsys", 50),
 	highlightcolor='white')
 pantallaOff=Label( ventana, text="Voltmetro", relief=RAISED, fg="gray", bg='gray', justify=CENTER, font=("fixedsys", 50),
 	highlightcolor='white')
@@ -113,7 +109,6 @@ unamLbl= Label(ventana, image=logoUNAM)
 integrantes =Label(ventana, text="Elaborado por:\nCastillo López Humberto Serafín\nGarcía Racilla Sandra",justify=CENTER, fg="green",font=("fixedsys", 10), bg="black")
 
 
-dato.set(puerto.readline())
 
 #Definimos botones
 prender = Button(ventana, text="On",width=10, justify=CENTER, command=on)
