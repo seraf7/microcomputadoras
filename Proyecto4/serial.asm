@@ -86,17 +86,16 @@ recibe:
 	btfss PIR1,RCIF		;Se verifica que se haya recibido un dato
 	goto recibe			;RCIF=0 Recepción en proceso
 	movf RCREG,W		;RCIF=1 Recepción completa,
-	movwf datoRx			;Carga daots en REGISTRO de RECEPCIÓN
+	movwf datoRx		;Carga datos en REGISTRO de RECEPCIÓN
 
 ;Seleccion del modo
 modo:
 	movlw h'01'
 	call comando			;Borrado del display
-	movf datoRx,0				;Lectura del dato
-	andlw b'00000111'		;Mascara para descartar bits no usados
+	movf datoRx,W			;Lectura del dato
 	movwf opc				;Guardar opcion registrada
 	;Validacion de la entrada
-	movf opc,0				;W = opc, opcion ingresada
+	sublw a'0'				;Comparacion con caracter 0
 	btfsc STATUS,Z
 	goto decimal			;opc = 0
 	movf opc,0
@@ -173,7 +172,7 @@ divi_1:
 	call transmite
 	call salto
 	call retardo_1seg		;Mantiene la señal
-	goto modo				;Va a rutina de conversion
+	goto recibe				;Va a rutina de recepcion
 
 ;;;DIVISION;;;
 divi:
