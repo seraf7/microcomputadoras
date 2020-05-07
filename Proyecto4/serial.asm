@@ -2,8 +2,8 @@
 ;Descripcion de puertos
 ;;;;;;;;;;;;;;;;
 ; PORTB bus de datos B0-D0 ... B7-D7
-; RS - E0
-; E - E1
+; RS - E0  /  D0
+; E - E1   /  D1
 ; R/W - GND
 ; PORTA entrada analógica A0
 ; PORTD modo D0-S1 ... D2-S3
@@ -41,6 +41,8 @@ c0  equ H'39'
 c1  equ H'40'
 c2  equ H'41'
 
+datoRx equ H'42'
+
     org 0
     goto inicio
 	org 5
@@ -57,9 +59,7 @@ inicio:
 	bcf STATUS,RP1			;Cambio al banco 1
 	clrf TRISB				;TRISB como salida
 	clrf TRISE				;TRISE como salida
-	clrf TRISC				;TRISC como salida
-	movlw h'ff'
-	movwf TRISD				;TRISD como entrada
+	clrf TRISD				;TRISD como salida
 	;Configuracion del CAD
 	clrf ADCON1				;ADCON1 como E/S analógica
 	;Configuracion de la comunicación serial
@@ -74,30 +74,38 @@ inicio:
 	movwf ADCON0			;lectura de canal 0, activación del CAD
 
 	bsf RCSTA,SPEN			;Habilitacion del puerto serie
-
+	bsf RCSTA,CREN			;CREN=1 SE HABILITA AL RECEPTOR
+	
 	call inicia_lcd			;Inicializacion del display
+
+
+;Rutina de recepcion serial
+recibe:
+	btfss PIR1,RCIF		;Se verifica que se haya recibido un dato
+	goto recibe			;RCIF=0 Recepción en proceso
+	movf RCREG,W		;RCIF=1 Recepción completa,
+	movwf datoRx		;Carga datos en REGISTRO de RECEPCIÓN
 
 ;Seleccion del modo
 modo:
 	movlw h'01'
 	call comando			;Borrado del display
-	movf PORTD,0			;Lectura del puerto D
-	andlw b'00000111'		;Mascara para descartar bits no usados
+	movf datoRx,W			;Lectura del dato
 	movwf opc				;Guardar opcion registrada
 	;Validacion de la entrada
-	movf opc,0				;W = opc, opcion ingresada
+	sublw a'0'				;Comparacion con caracter 0
 	btfsc STATUS,Z
 	goto decimal			;opc = 0
 	movf opc,0
-	xorlw h'01'				;Comparacion con 01H			
+	xorlw a'1'				;Comparacion con 01H			
 	btfsc STATUS,Z
 	goto hexadecimal		;opc = 1
 	movf opc,0
-	xorlw h'02'				;Comparacion con 02H			
+	xorlw a'2'				;Comparacion con 02H			
 	btfsc STATUS,Z
 	goto binario			;opc = 2
 	movf opc,0
-	xorlw h'03'				;Comparacion con 03H
+	xorlw a'3'				;Comparacion con 03H
 	btfsc STATUS,Z
 	goto voltaje			;opc = 3
 	goto modo
@@ -162,7 +170,7 @@ divi_1:
 	call transmite
 	call salto
 	call retardo_1seg		;Mantiene la señal
-	goto modo				;Va a rutina de conversion
+	goto recibe				;Va a rutina de recepcion
 
 ;;;DIVISION;;;
 divi:
@@ -244,12 +252,7 @@ hexadecimal:
 	call transmite			;Envia ascii de parte alta al puerto serial
 	call salto
 	call retardo_1seg		;Mantiene la señal
-	movf PORTD,0			;Lectura del puerto D
-	xorlw h'01'				;Valida que el valor del puerto D
-	btfsc STATUS,Z
-	goto hexadecimal		;Puerto D en 1
-	goto modo				;Puerto D cambio de valor
-
+	goto recibe				;
 ;Rutina para imprimir la entrada en formato binario
 binario:
 	call conversion
@@ -288,11 +291,7 @@ dec_con:
 interrupcion:
 	call salto				;Imprime salto de linea	
 	call retardo_1seg		;Mantiene la señal
-	movf PORTD,0			;Lectura del puerto D
-	xorlw h'02'				;Valida que el valor del puerto D
-	btfsc STATUS,Z
-	goto binario			;Puerto D en 2
-	goto modo				;Puerto D cambio de valor
+	goto recibe	
 cero_binario:
 	decf contador
 	btfsc STATUS,Z			;Verifica si se ha llegado a 0
@@ -372,7 +371,7 @@ imprime:
 	call transmite			;Endia datos al puerto serial
 	call salto				;Imprime salto de linea
 	call retardo_1seg
-	goto modo
+	goto recibe	
 
 ;Rutina de incializacion del display
 inicia_lcd:
@@ -398,10 +397,10 @@ inicia_lcd:
 comando:
 	movwf PORTB 
     call ret200
-    bcf PORTC,0
-    bsf PORTC,1
+    bcf PORTD,0
+    bsf PORTD,1
     call ret200
-    bcf PORTC,1
+    bcf PORTD,1
 	call ret200
 	call ret200
     return
@@ -410,10 +409,10 @@ comando:
 datos:
 	movwf PORTB
     call ret200
-    bsf PORTC,0
-    bsf PORTC,1
+    bsf PORTD,0
+    bsf PORTD,1
     call ret200
-    bcf PORTC,1
+    bcf PORTD,1
     call ret200
     call ret200
     return
@@ -454,6 +453,7 @@ esp:
 	goto esp				;TRMT = 0, transmision en proceso
 	bcf STATUS,RP0			;Cambio al banco de memoria 0
 	return
+
 
 ;Rutina para imprimir un salto de linea
 salto:
