@@ -1,0 +1,3 @@
+Voltmetro con implementacion de interrupciones.
+
+El sistema funciona durante un tiempo de 3 minutos, despues de dicho lapso se muestra un mensaje de fin del funcionamiento
