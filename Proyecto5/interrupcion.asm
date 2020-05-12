@@ -85,7 +85,7 @@ inicio:
 	bsf INTCON,T0IE			;Habilita interrupcion por desbordamiento
 	bsf INTCON,GIE			;Habilita interrupciones generales
 	clrf contI1				;Limpia contador
-	clrf conrI2
+	clrf contI2
 
 	movlw b'11000001'		;Configura el ADCON0 con el reloj interno, 
 	movwf ADCON0			;lectura de canal 0, activación del CAD
@@ -538,22 +538,33 @@ lp_1:
 interrupcion:
 	btfss INTCON,T0IF		;Verifica estado de T0IF
 	goto sal_no_fue_TMR0	;T0IF = 0, no hay desbordamietno
-	incf contI1				;Incrementa contador
-	movlw d'254'			;W = 255
-	subwf	contI1			;W = contI1 - W
+	movlw d'54'				;W = 54
+	subwf contI2,W			;W = contI2 - W
+	btfsc STATUS,Z			;Verifica estado de Z
+	goto pausa				;Z = 1, tiempo limite alcanzado
+	movlw d'254'			;W = 254
+	subwf contI1,W			;W = contI1 - W
 	btfss STATUS,Z			;Verifica estado de Z
-	goto sal_int			;Z = 0, valores diferentes
-	goto pausa				;Va a rutina de tiempo terminado
+	goto inc1				;Z = 0, valores diferentes
+	goto inc2				;Z = 1, va a rutina de tiempo terminado
+inc1:
+	incf contI1				;contI1++
+	goto sal_int			;Sale de interrupcion
+inc2:
+	clrf contI1				;contI2 = 0
+	incf contI2				;contI2++
 sal_int:
 	bcf INTCON,T0IF			;Limpia bandera T0IF, sin desbordamiento
 sal_no_fue_TMR0:
 	retfie					;Retorno de la interrupcion
 
 pausa:
-	movlw a'Z'				;W = Z (caracter)
+	movlw a'$'				;W = Z (caracter)
 	movwf TXREG				;Prepara dato a transmitir
 	call datos				;Envia datos al display
 	call transmite			;Envia datos a la terminal
-	goto pausa				;Mantiene interrupcion
+alto:
+	nop
+	goto alto				;Mantiene interrupcion
 
 	end
