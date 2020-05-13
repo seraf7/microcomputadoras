@@ -561,7 +561,8 @@ sal_no_fue_TMR0:
 	retfie					;Retorno de la interrupcion
 
 pausa:
-
+	movlw h'80'				;Cursor al inicio del display
+	call comando
 	movlw a'T'				;Impresión de mensaje en el display
 	movwf TXREG
 	call transmite
