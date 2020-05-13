@@ -46,6 +46,8 @@ datoRx equ H'42'
 contI1 equ H'43'		;Contadores para interrupcion
 contI2 equ H'44'
 
+apunta equ H'45'
+
     org 0
     goto inicio			;Vector de reset
 
@@ -559,45 +561,75 @@ sal_no_fue_TMR0:
 	retfie					;Retorno de la interrupcion
 
 pausa:
-	movlw a'$'				;W = Z (caracter)
-	movwf TXREG				;Prepara dato a transmitir
-	call transmite			;Envia datos a la terminal
-	movlw h'80'				;Cursor al inicio del renglon
-	call comando			;Envia datos al display
+
 	movlw a'T'				;Impresión de mensaje en el display
+	movwf TXREG
+	call transmite
 	call datos
 	movlw a'I'
+	movwf TXREG
+	call transmite
 	call datos
 	movlw a'E'
+	movwf TXREG
+	call transmite
 	call datos
 	movlw a'M'
+	movwf TXREG
+	call transmite
 	call datos
 	movlw a'P'
+	movwf TXREG
+	call transmite
 	call datos
 	movlw a'O'
+	movwf TXREG
+	call transmite
 	call datos
 	movlw a' '
+	movwf TXREG
+	call transmite
 	call datos
 	movlw a'T'
+	movwf TXREG
+	call transmite
 	call datos
 	movlw a'E'
+	movwf TXREG
+	call transmite
 	call datos
 	movlw a'R'
+	movwf TXREG
+	call transmite
 	call datos
 	movlw a'M'
+	movwf TXREG
+	call transmite
 	call datos
 	movlw a'I'
+	movwf TXREG
+	call transmite
 	call datos
 	movlw a'N'
+	movwf TXREG
+	call transmite
 	call datos
 	movlw a'A'
+	movwf TXREG
+	call transmite
 	call datos
 	movlw a'D'
+	movwf TXREG
+	call transmite
 	call datos
 	movlw a'O'
+	movwf TXREG
+	call transmite
 	call datos
+	call retardo_1seg
 alto:
 	nop
 	goto alto				;Mantiene interrupcion
+
 
 	end
