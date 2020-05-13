@@ -561,8 +561,41 @@ sal_no_fue_TMR0:
 pausa:
 	movlw a'$'				;W = Z (caracter)
 	movwf TXREG				;Prepara dato a transmitir
-	call datos				;Envia datos al display
 	call transmite			;Envia datos a la terminal
+	movlw h'80'				;Cursor al inicio del renglon
+	call comando			;Envia datos al display
+	movlw a'T'				;Impresión de mensaje en el display
+	call datos
+	movlw a'I'
+	call datos
+	movlw a'E'
+	call datos
+	movlw a'M'
+	call datos
+	movlw a'P'
+	call datos
+	movlw a'O'
+	call datos
+	movlw a' '
+	call datos
+	movlw a'T'
+	call datos
+	movlw a'E'
+	call datos
+	movlw a'R'
+	call datos
+	movlw a'M'
+	call datos
+	movlw a'I'
+	call datos
+	movlw a'N'
+	call datos
+	movlw a'A'
+	call datos
+	movlw a'D'
+	call datos
+	movlw a'O'
+	call datos
 alto:
 	nop
 	goto alto				;Mantiene interrupcion
