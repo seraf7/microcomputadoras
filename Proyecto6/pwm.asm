@@ -20,23 +20,19 @@ val1 equ h'25'
 val2 equ h'26'
 val3 equ h'27'
 
-valor7 equ h'28'
-valor8 equ h'29'
-valor9 equ h'30'
+opc equ h'28'
+DEC_2 equ H'29'; Centenas
+DEC_1 equ H'30'; Decenas
+DEC_0 equ H'31'; Unidades
 
-opc equ h'31'
-DEC_2 equ H'32'; Centenas
-DEC_1 equ H'33'; Decenas
-DEC_0 equ H'34'; Unidades
+nume equ h'32'
+denom equ h'33'
+resultado equ h'34'
+residuo equ h'35'
 
-nume equ h'35'
-denom equ h'36'
-resultado equ h'37'
-residuo equ h'38'
-
-cont_Interr equ h'39'
-pwm equ h'40'
-valor_pwm equ h'41'
+cont_Interr equ h'36'
+pwm equ h'37'
+valor_pwm equ h'38'
 
 org 0
 	goto inicio
@@ -73,7 +69,17 @@ inicio:
 	MOVLW B'00000111'
 	MOVWF OPTION_REG		;PS2-0 111 -> 256
 
+	;Configuracion de la comunicación serial
+	bsf TXSTA,BRGH			;Seleccion de alta velocidad
+	movlw d'129'			;W = 129
+	movwf SPBRG				;BAUDS = 9600
+	bcf TXSTA,SYNC			;Uso de comunicacion asincrona
+	bsf TXSTA,TXEN			;Activacion de transmision
+
 	bcf STATUS,RP0			;Cambio al banco 0
+	bsf RCSTA,SPEN			;Habilitacion del puerto serie
+	bsf RCSTA,CREN			;CREN=1 SE HABILITA AL RECEPTOR
+
 	movlw b'11000001'		;Configura el ADCON0 con el reloj interno, 
 	movwf ADCON0			;lectura de canal 0, activación del CAD
 	
@@ -189,35 +195,51 @@ numero:
 	movlw h'c0'				;Cursor en posicion (1,2)
 	call comando
 	movlw a'P'
+	movwf TXREG
 	call datos				;Impresion de caracter ASCII
+	call transmite			;Envio de datos al puerto serial
 	movlw a'W'
+	movwf TXREG
 	call datos				;Impresion de caracter ASCII
+	call transmite			;Envio de datos al puerto serial
 	movlw a'M'
+	movwf TXREG
 	call datos				;Impresion de caracter ASCII
+	call transmite			;Envio de datos al puerto serial
 	movlw a':'
+	movwf TXREG
 	call datos				;Impresion de caracter ASCII
+	call transmite			;Envio de datos al puerto serial
 	movlw a' '
+	movwf TXREG
 	call datos				;Impresion de espacio
+	call transmite			;Envio de datos al puerto serial
 	call decimal
 	movlw a'/'				;Impresion de caracter ASCII /
+	movwf TXREG
 	call datos
+	call transmite			;Envio de datos al puerto serial
 	movlw a'2'
+	movwf TXREG
 	call datos				;Impresion de caracter ASCII
 	movlw a'5'
+	movwf TXREG
 	call datos				;Impresion de caracter ASCII
+	call transmite			;Envio de datos al puerto serial
 	movlw a'5'
+	movwf TXREG
 	call datos
+	call transmite			;Envio de datos al puerto serial
+	call salto
 	call retardo_1seg		;Mantiene la señal
 	goto niveles
 
 ;Rutina para imprimir valor decimal del registro
 decimal:
 	;Inicializacion valores
-	movlw h'00' 
-	movwf DEC_2 ;DEC_2='00'
- 	movwf DEC_1 ;DEC_1='00'
-	movwf DEC_0 ;DEC_0='00'
-	;call conversion
+	clrf DEC_2 ;DEC_2='00'
+ 	clrf DEC_1 ;DEC_1='00'
+	clrf DEC_0 ;DEC_0='00'
 	
 	;;;División entre 100
 divi_100:	
@@ -254,23 +276,18 @@ divi_1:
 	call ascii 
    	movwf DEC_0  			;DEC_0=W UNIDADES
 ;Impresion de caracteres
-	;movlw 0x80				;Cursor en el extremo superior derecho
-	;call comando			;Envia comando al display
 	movf DEC_2,0			;W = DEC_2
 	movwf TXREG				;TXREG = DEC_2, dato para transmitir
 	call datos				;Envio de datos al display
-	;call transmite			;Envio de datos al puerto serial
+	call transmite			;Envio de datos al puerto serial
 	movf DEC_1,0
 	movwf TXREG
 	call datos
-	;call transmite
+	call transmite
 	movf DEC_0,0
 	movwf TXREG
 	call datos
-	;call transmite
-	;call salto
-	;call retardo_1seg		;Mantiene la señal
-	;goto recibe				;Va a rutina de recepcion
+	call transmite
 	return
 ;;;DIVISION;;;
 divi:
@@ -519,6 +536,25 @@ mayor9:
 salir:
 	return
 
+;Rutina de transmision serial
+transmite:
+	bsf STATUS,RP0			;Cambio al banco 1
+esp:
+	btfss TXSTA,TRMT		;Verifica TRMT
+	goto esp				;TRMT = 0, transmision en proceso
+	bcf STATUS,RP0			;Cambio al banco de memoria 0
+	return
+
+;Rutina para imprimir un salto de linea
+salto:
+	movlw 0x0D				;Cursor posicionado al inicio de la linea
+	movwf TXREG
+	call transmite			;Transmite el dato
+	movlw 0x0A				;Cursor en la siguiente linea
+	movwf TXREG
+	call transmite
+	return
+
 ;Rutina de inicializacion del display
 inicia_lcd:
 	  movlw 0x30
@@ -602,24 +638,6 @@ lp_1:	 decfsz val3
 		 decfsz val1
 		 goto lp_3
 	return
-
-retardo8: ;Subrutina de retardo de aproximadamente 800useg
-	MOVLW 36H
-	MOVWF valor7
-nueve:
-	MOVLW 9FH
-	MOVWF valor8
-ocho: 
-	MOVLW 8DH
-	MOVWF valor9
-siete: 
-	DECFSZ valor9,1
-	GOTO siete
-	DECFSZ valor8,1
-	GOTO ocho
-	DECFSZ valor7,1
-	GOTO nueve
-	RETURN
 
 ;Rutina de Interrupción
 interrupcion:
