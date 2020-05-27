@@ -4,9 +4,8 @@
  ; R/W - GND
  ; PORTA entrada analógica A0
 
-
- processor 16f877
- include<p16f877.inc>
+processor 16f877
+include<p16f877.inc>
  
 valor equ h'20'
 valor1 equ h'21'
@@ -40,7 +39,7 @@ residuo equ h'38'
 inicio:
 	;Limpieza de puertos
 	clrf PORTD
-    CLRF PORTB
+    clrf PORTB
 	clrf PORTA 
 	;Configuracion de puertos
     bsf STATUS,5
@@ -49,27 +48,37 @@ inicio:
    	clrf TRISD				;TRISD como salida
 	;Configuracion del CAD
    	clrf ADCON1				;ACON! como E/S analogica
+	;Configuracion de la comunicación serial
+	bsf TXSTA,BRGH			;Seleccion de alta velocidad
+	movlw d'129'			;W = 129
+	movwf SPBRG				;BAUDS = 9600
+	bcf TXSTA,SYNC			;Uso de comunicacion asincrona
+	bsf TXSTA,TXEN			;Activacion de transmision
 
    	bcf STATUS,5			;Cambio al banco 0
 	movlw b'11000001'		;Configura el ADCON0 con el reloj interno, 
 	movwf ADCON0			;lectura de canal 0, activación del CAD
 	
-	clrf conv
+	bsf RCSTA,SPEN			;Habilitacion del puerto serie
+	bsf RCSTA,CREN			;CREN=1 SE HABILITA AL RECEPTOR
+
+	clrf conv				;Limpia variable de conversion
 	
-   call inicia_lcd
+   	call inicia_lcd			;Inicializa el display
  
-otrom:  movlw 0x80
-  call comando
-  movlw a'F'
-  call datos
-  movlw a'I'
-  call datos
-  call retardo_1seg
-  call especial
+otrom:  
+	movlw 0x80
+  	call comando
+  	movlw a'F'
+  	call datos
+  	movlw a'I'
+  	call datos
+  	call retardo_1seg
+  	call especial			;Registra caracteres epeciales
 
 ;Rutina de impresion de niveles
 niveles:
-	call conversion
+	call conversion			;Llama rutina de conversion A/D
 	movlw h'01'				;Cursor a Home, borrado de posiciones
   	call comando
 	movlw h'80'				;Cursor en posicion (1,1)
@@ -147,7 +156,7 @@ numero:
 	call datos				;Impresion de caracter ASCII
 	movlw a' '
 	call datos				;Impresion de espacio
-	call decimal
+	call decimal			;Imprimir valor convertido
 	movlw a'/'				;Impresion de caracter ASCII /
 	call datos
 	movlw a'2'
@@ -161,12 +170,10 @@ numero:
 
 ;Rutina para imprimir valor decimal del registro
 decimal:
-	;Inicializacion valores
-	movlw h'00' 
-	movwf DEC_2 ;DEC_2='00'
- 	movwf DEC_1 ;DEC_1='00'
-	movwf DEC_0 ;DEC_0='00'
-	;call conversion
+	;Inicializacion valores 
+	clrf DEC_2 ;DEC_2='00'
+ 	clrf DEC_1 ;DEC_1='00'
+	clrf DEC_0 ;DEC_0='00'
 	
 	;;;División entre 100
 divi_100:	
@@ -203,23 +210,19 @@ divi_1:
 	call ascii 
    	movwf DEC_0  			;DEC_0=W UNIDADES
 ;Impresion de caracteres
-	;movlw 0x80				;Cursor en el extremo superior derecho
-	;call comando			;Envia comando al display
 	movf DEC_2,0			;W = DEC_2
 	movwf TXREG				;TXREG = DEC_2, dato para transmitir
 	call datos				;Envio de datos al display
-	;call transmite			;Envio de datos al puerto serial
+	call transmite			;Envio de datos al puerto serial
 	movf DEC_1,0
 	movwf TXREG
 	call datos
-	;call transmite
+	call transmite
 	movf DEC_0,0
 	movwf TXREG
 	call datos
-	;call transmite
-	;call salto
-	;call retardo_1seg		;Mantiene la señal
-	;goto recibe				;Va a rutina de recepcion
+	call transmite
+	call salto
 	return
 ;;;DIVISION;;;
 divi:
@@ -271,242 +274,171 @@ resto:
 especial:
 	movlw h'40'			;Acceso a la CGRAM (caracter 1)
 	call comando
-	call retardo8
+	
 	;Escritura por renglones del caracter especial
 	movlw h'00'
 	call datos
-	call retardo8
 	movlw h'00'
 	call datos
-	call retardo8
 	movlw h'00'
 	call datos
-	call retardo8
 	movlw h'00'
 	call datos
-	call retardo8
 	movlw h'00'
 	call datos
-	call retardo8
 	movlw h'00'
 	call datos
-	call retardo8
 	movlw h'00'
 	call datos
-	call retardo8
 	movlw h'15'
 	call datos
-	call retardo8
 	
 ;Segundo nivel de la imagen
 	movlw h'48'			;Acceso a la CGRAM (Caracter 2)
 	call comando
-	call retardo8
 	;Escritura por renglones del caracter especial
 	movlw h'00'
 	call datos
-	call retardo8
 	movlw h'00'
 	call datos
-	call retardo8
 	movlw h'00'
 	call datos
-	call retardo8
 	movlw h'00'
 	call datos
-	call retardo8
 	movlw h'00'
 	call datos
-	call retardo8
 	movlw h'00'
 	call datos
-	call retardo8
 	movlw h'0A'
 	call datos
-	call retardo8
 	movlw h'15'
 	call datos
-	call retardo8
 
 ;Tercer nivel de imagen
 	movlw h'50'			;Acceso a la CGRAM (Caracter 3)
 	call comando
-	call retardo8
 	;Escritura por renglones del caracter especial
 	movlw h'00'
 	call datos
-	call retardo8
 	movlw h'00'
 	call datos
-	call retardo8
 	movlw h'00'
 	call datos
-	call retardo8
 	movlw h'00'
 	call datos
-	call retardo8
 	movlw h'00'
 	call datos
-	call retardo8
 	movlw h'15'
 	call datos
-	call retardo8
 	movlw h'0A'
 	call datos
-	call retardo8
 	movlw h'15'
 	call datos
-	call retardo8
 
 ;Cuarto nivel de imagen
 	movlw h'58'			;Acceso a la CGRAM (Caracter 4)
 	call comando
-	call retardo8
 	;Escritura por renglones del caracter especial
 	movlw h'00'
 	call datos
-	call retardo8
 	movlw h'00'
 	call datos
-	call retardo8
 	movlw h'00'
 	call datos
-	call retardo8
 	movlw h'00'
 	call datos
-	call retardo8
 	movlw h'0A'
 	call datos
-	call retardo8
 	movlw h'15'
 	call datos
-	call retardo8
 	movlw h'0A'
 	call datos
-	call retardo8
 	movlw h'15'
 	call datos
-	call retardo8
 
 ;Quinto nivel de imagen
 	movlw h'60'			;Acceso a la CGRAM (Caracter 5)
 	call comando
-	call retardo8
 	;Escritura por renglones del caracter especial
 	movlw h'00'
 	call datos
-	call retardo8
 	movlw h'00'
 	call datos
-	call retardo8
 	movlw h'00'
 	call datos
-	call retardo8
 	movlw h'15'
 	call datos
-	call retardo8
 	movlw h'0A'
 	call datos
-	call retardo8
 	movlw h'15'
 	call datos
-	call retardo8
 	movlw h'0A'
 	call datos
-	call retardo8
 	movlw h'15'
 	call datos
-	call retardo8
 
 ;Sexto nivel de imagen
 	movlw h'68'			;Acceso a la CGRAM (Caracter 6)
 	call comando
-	call retardo8
 	;Escritura por renglones del caracter especial
 	movlw h'00'
 	call datos
-	call retardo8
 	movlw h'00'
 	call datos
-	call retardo8
 	movlw h'0A'
 	call datos
-	call retardo8
 	movlw h'15'
 	call datos
-	call retardo8
 	movlw h'0A'
 	call datos
-	call retardo8
 	movlw h'15'
 	call datos
-	call retardo8
 	movlw h'0A'
 	call datos
-	call retardo8
 	movlw h'15'
 	call datos
-	call retardo8
 
 ;Septimo nivel de imagen
 	movlw h'70'			;Acceso a la CGRAM (Caracter 7)
 	call comando
-	call retardo8
 	;Escritura por renglones del caracter especial
 	movlw h'00'
 	call datos
-	call retardo8
 	movlw h'15'
 	call datos
-	call retardo8
 	movlw h'0A'
 	call datos
-	call retardo8
 	movlw h'15'
 	call datos
-	call retardo8
 	movlw h'0A'
 	call datos
-	call retardo8
 	movlw h'15'
 	call datos
-	call retardo8
 	movlw h'0A'
 	call datos
-	call retardo8
 	movlw h'15'
 	call datos
-	call retardo8
 
 ;Octavo nivel de imagen
 	movlw h'78'			;Acceso a la CGRAM (Caracter 8)
 	call comando
-	call retardo8
 	;Escritura por renglones del caracter especial
 	movlw h'0A'
 	call datos
-	call retardo8
 	movlw h'15'
 	call datos
-	call retardo8
 	movlw h'0A'
 	call datos
-	call retardo8
 	movlw h'15'
 	call datos
-	call retardo8
 	movlw h'0A'
 	call datos
-	call retardo8
 	movlw h'15'
 	call datos
-	call retardo8
 	movlw h'0A'
 	call datos
-	call retardo8
 	movlw h'15'
 	call datos
-	call retardo8
 
 	call inicia_lcd
 	return
@@ -539,22 +471,41 @@ mayor9:
 salir:
 	return
 
+;Rutina de transmision serial
+transmite:
+	bsf STATUS,RP0			;Cambio al banco 1
+esp:
+	btfss TXSTA,TRMT		;Verifica TRMT
+	goto esp				;TRMT = 0, transmision en proceso
+	bcf STATUS,RP0			;Cambio al banco de memoria 0
+	return
+
+;Rutina para imprimir un salto de linea
+salto:
+	movlw 0x0D				;Cursor posicionado al inicio de la linea
+	movwf TXREG
+	call transmite			;Transmite el dato
+	movlw 0x0A				;Cursor en la siguiente linea
+	movwf TXREG
+	call transmite
+	return
+
 ;Rutina de inicializacion del display
 inicia_lcd:
-	  movlw 0x30
-      call comando
-      call ret100ms
-      movlw 0x30
-      call comando
-      call ret100ms
-     movlw 0x38
-     call comando
-     movlw 0x0c
-     call comando
-     movlw 0x01
-     call comando
-     movlw 0x06
-     call comando
+	movlw 0x30
+    call comando
+    call ret100ms
+    movlw 0x30
+    call comando
+    call ret100ms
+    movlw 0x38
+    call comando
+    movlw 0x0c
+    call comando
+    movlw 0x01
+    call comando
+    movlw 0x06
+    call comando
     movlw 0x02
     call comando
     return
@@ -594,51 +545,42 @@ loop1:
       goto loop
       return
 
-ret100ms: movlw 0x03 
+ret100ms:
+	movlw 0x03 
 rr  movwf valor
-tres: movlw 0xff
+tres:
+	movlw 0xff
  	movwf valor1
-dos: movlw 0xff
+dos:
+	movlw 0xff
  	movwf valor2
-uno: decfsz valor2
-  goto uno
- decfsz valor1
- goto dos
- decfsz valor
- goto tres
-return
-
-retardo_1seg:  ;Falta esta subrutina de 1 segundo
-		 movlw h'40'
-         movwf val1
-lp_3:	 movlw h'100'
-		 movwf val2
-lp_2:	 movlw h'120'
- 		 movwf val3
-lp_1:	 decfsz val3
-		 goto lp_1
-		 decfsz val2
-		 goto lp_2
-		 decfsz val1
-		 goto lp_3
+uno:
+	decfsz valor2
+  	goto uno
+ 	decfsz valor1
+ 	goto dos
+ 	decfsz valor
+ 	goto tres
 	return
 
-retardo8: ;Subrutina de retardo de aproximadamente 800useg
-	MOVLW 36H
-	MOVWF valor7
-nueve:
-	MOVLW 9FH
-	MOVWF valor8
-ocho: 
-	MOVLW 8DH
-	MOVWF valor9
-siete: 
-	DECFSZ valor9,1
-	GOTO siete
-	DECFSZ valor8,1
-	GOTO ocho
-	DECFSZ valor7,1
-	GOTO nueve
-	RETURN
+;Subrutina de retardo de 1 segundo
+retardo_1seg:
+	movlw h'40'
+    movwf val1
+lp_3:
+	movlw h'100'
+	movwf val2
+lp_2:
+	movlw h'120'
+ 	movwf val3
+lp_1:
+	decfsz val3
+	goto lp_1
+	decfsz val2
+	goto lp_2
+	decfsz val1
+	goto lp_3
+	return
+
 
 	end
