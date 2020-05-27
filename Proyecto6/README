@@ -1,0 +1,13 @@
+Proyecto No. 6
+
+Realizar un programa que controle de manera automática y manual  una señal PWM.
+
+a.Manual: usar una señal analógica controlar la señal PWM
+  a.Potenciómetro en la modalidad de divisor de voltaje, cada que se varié esta señal actualiza el PWM
+b.Automática: usando interrupciones, incrementar y decrementar la señal pwmcada segundo 
+  a.Serán incrementos y decrementos  unitarios, iniciando con 00 como mínimo hasta llegar a FF como máximo y viceversa en el caso inverso
+c.La selección se realizará con un interruptor
+d.Conectar un led o un motor en la terminal usada. En el cado de seleccionar el motor requiere de un transistor o driver como el L293,
+  L298o equivalente según su disponibilidad
+e.En el LCD crear una imagen con al menos 8 niveles que  nos indique el estado el ciclo de trabajo
+f.Representar la información del punto anterior en una terminal gráfica o su aplicación, de acuerdo a tus proyectos anteriores
