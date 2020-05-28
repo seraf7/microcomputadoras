@@ -195,44 +195,27 @@ numero:
 	movlw h'c0'				;Cursor en posicion (1,2)
 	call comando
 	movlw a'P'
-	movwf TXREG
 	call datos				;Impresion de caracter ASCII
-	call transmite			;Envio de datos al puerto serial
 	movlw a'W'
-	movwf TXREG
 	call datos				;Impresion de caracter ASCII
-	call transmite			;Envio de datos al puerto serial
 	movlw a'M'
-	movwf TXREG
 	call datos				;Impresion de caracter ASCII
-	call transmite			;Envio de datos al puerto serial
 	movlw a':'
-	movwf TXREG
 	call datos				;Impresion de caracter ASCII
-	call transmite			;Envio de datos al puerto serial
 	movlw a' '
-	movwf TXREG
 	call datos				;Impresion de espacio
-	call transmite			;Envio de datos al puerto serial
 	call decimal
 	movlw a'/'				;Impresion de caracter ASCII /
-	movwf TXREG
 	call datos
-	call transmite			;Envio de datos al puerto serial
 	movlw a'2'
-	movwf TXREG
 	call datos				;Impresion de caracter ASCII
 	movlw a'5'
-	movwf TXREG
 	call datos				;Impresion de caracter ASCII
-	call transmite			;Envio de datos al puerto serial
 	movlw a'5'
-	movwf TXREG
 	call datos
-	call transmite			;Envio de datos al puerto serial
-	call salto
 	call retardo_1seg		;Mantiene la señal
 	goto niveles
+	
 
 ;Rutina para imprimir valor decimal del registro
 decimal:

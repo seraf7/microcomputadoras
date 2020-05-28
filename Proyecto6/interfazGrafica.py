@@ -79,7 +79,7 @@ while True:
 	currentValue=int(cadena)
 	progressbar["value"]=currentValue
 	progressbar["maximum"]=maxValue
-	progressbar.after(500, progress(currentValue))
+	progressbar.after(50, progress(currentValue))
 	progressbar.update()
 
 
