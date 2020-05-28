@@ -35,7 +35,7 @@ ventana.title("Volmetro")
 
 progressbar=ttk.Progressbar(ventana,orient="horizontal",length=300,mode="determinate")
 
-dato=puerto.readline()	
+dato=puerto.read(3)	
 cadena=dato.decode("utf-8") 
 
 #Imagenes que usaremos
@@ -45,7 +45,7 @@ logoUNAM=PhotoImage(file="escudounam_negro.png")
 #Definicion de etiquetas 
 titulo = Label( ventana, text="Volmetro \n PIC16F887A", relief=RAISED, fg="green", bg='black', justify=CENTER, font=("fixedsys", 34),
 	highlightcolor='white')
-pantallaOn=Label( ventana, text="PWM: "+cadena+"/255", relief=RAISED, fg="green", bg='white', justify=CENTER, font=("fixedsys", 40),
+pantallaOn=Label( ventana, text="PWM: "+cadena+"/255", relief=RAISED, fg="green", bg='white', justify=CENTER, font=("fixedsys", 50),
 	highlightcolor='white')
 
 
@@ -72,15 +72,15 @@ progressbar.pack(padx=10, pady=10)
 
 maxValue=255
 
-
-dato=puerto.readline()
-cadena=dato.decode("utf-8") 
-pantallaOn['text']="PWM: "+cadena+"/255"
-currentValue=int(cadena)
-progressbar["value"]=currentValue
-progressbar["maximum"]=maxValue
-progressbar.after(500, progress(currentValue))
-progressbar.update()
+while True:
+	dato=puerto.read(3)
+	cadena=dato.decode("utf-8") 
+	pantallaOn['text']="PWM: "+cadena+"/255"
+	currentValue=int(cadena)
+	progressbar["value"]=currentValue
+	progressbar["maximum"]=maxValue
+	progressbar.after(500, progress(currentValue))
+	progressbar.update()
 
 
 
