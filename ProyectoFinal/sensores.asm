@@ -24,6 +24,7 @@ inicio:
 	clrf PORTB				;Limpia el puerto B
 
 sensores:
+	clrf piso				;Limpia piso
 	call leer_sensores
 	movf s1,W				;W = s1
 	sublw h'10'				;W = 10 - s1
@@ -33,13 +34,18 @@ sensores:
 	sublw h'10'				;W = 10 - s2
 	btfsc STATUS,C			;Verificamos valor del carry
 	bsf piso,1				;C = 1, 10 >= s2, linea negra
+	bsf piso,2				;piso[2] = 1
 	movf s3,W				;W = s3
-	sublw h'10'				;W = 10 - s3
-	btfsc STATUS,C			;Verificamos valor del carry
-	bsf piso,2				;C = 1, 10 >= s3, linea negra
+	sublw h'100'			;W = 100 - s3
+	btfss STATUS,C			;Verificamos valor del carry
+	bcf piso,2				;C = 0, 100 < s3, linea blanca
+	movlw h'60'				;W = 60
+	subwf s3,W				;W = s3 - 60
+	btfss STATUS,C			;Verificamos valor del carry
+	bcf	piso,2				;C = 0, s3 < 60, linea blanca
 	movf piso,W				;W = piso
 	movwf PORTB				;PORTB = piso
-	call retardo_1seg
+	;call retardo_1seg
 	goto sensores
 
 ;Rutina para realizar la lectura de los sensores
