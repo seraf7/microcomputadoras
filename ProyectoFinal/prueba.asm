@@ -139,6 +139,8 @@ piso1:
 	call datos			;Envia caracter
 	goto salida
 piso2:
+	movlw h'81'
+	call comando
 	movlw a'2'			;W = caracter 1
 	call datos			;Envia caracter
 	goto salida
