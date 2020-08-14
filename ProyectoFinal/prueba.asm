@@ -24,6 +24,7 @@ valor2 equ h'29'
 
 boton equ h'30'
 giro equ h'31'
+giroAnt equ h'32'
 
 	org 0
 	goto inicio
@@ -127,11 +128,11 @@ busca_piso:
 	movf giro,W			;Lee piso actual
 	sublw h'02'			;Valida piso 2
 	btfsc STATUS,Z		;Verifica estado de Z
-	goto piso2			;Z = 1, esta en el piso 1
+	goto piso2			;Z = 1, esta en el piso 2
 	movf giro,W			;Lee piso actual
 	sublw h'04'			;Valida piso 3
 	btfsc STATUS,Z		;Verifica estado de Z
-	goto piso3			;Z = 1, esta en el piso 1
+	goto piso3			;Z = 1, esta en el piso 3
 
 piso1:
 	movlw a'1'			;W = caracter 1
@@ -144,7 +145,6 @@ piso2:
 piso3:
 	movlw a'3'			;W = caracter 1
 	call datos			;Envia caracter
-	goto salida
 salida:
 	call retardo_1seg
 	return
@@ -156,45 +156,47 @@ sensores:
 	movf s1,W				;W = s1
 	sublw d'10'				;W = 10 - s1
 	btfsc STATUS,C			;Verificamos valor del carry
-	call negro1
+	goto negro1
 	;bsf piso,0	 			;C = 1, 10 >= s1, linea negra
 	movf s2,W				;W = s2
 	sublw d'20'				;W = 10 - s2
 	btfsc STATUS,C			;Verificamos valor del carry
-	call negro2
-	;bsf piso,1				;C = 1, 10 >= s2, linea negra
-	bsf piso,2				;piso[2] = 1
+	goto negro2
+	;bsf piso,1				;C = 1, 20 >= s2, linea negra
+	;bsf piso,2				;piso[2] = 1
 	movf s3,W				;W = s3
 	sublw d'100'			;W = 100 - s3
 	btfss STATUS,C			;Verificamos valor del carry
-	bcf piso,2				;C = 0, 100 < s3, linea blanca
+	goto sin_piso			;C = 0, 100 < s3, linea blanca
 	movlw d'60'				;W = 60
 	subwf s3,W				;W = s3 - 60
 	btfss STATUS,C			;Verificamos valor del carry
-	bcf	piso,2				;C = 0, s3 < 60, linea blanca
-	movf piso,W				;W = piso
-	btfss STATUS,Z
-	call negro3				;Último piso leído 3
-	;Z=1 No está en ningún piso
-	movf giro,W				;W = piso leido anteriormente
-	movwf piso
-	return
+	goto sin_piso			;C = 0, s3 < 60, linea blanca
+	goto negro3				;Último piso leído 3
 
 negro1:
 	bsf piso,0
 	movlw d'1'
-	movwf giro 
- 	return
+	movwf giro
+	movwf giroAnt 
+ 	goto salida_sensores
 negro2:
 	bsf piso,1
 	movlw d'2'
-	movwf giro 
- 	return 
+	movwf giro
+	movwf giroAnt
+	goto salida_sensores 
 negro3:
 	bsf piso,2
 	movlw d'4'
-	movwf giro 
- 	return  
+	movwf giro
+	movwf giroAnt
+	goto salida_sensores 
+sin_piso:
+	movf giroAnt,W			;W = ultimo valor aceptado
+	movwf giro				;giro = W
+salida_sensores:
+	return
 
 ;Rutina para realizar la lectura de los sensores
 leer_sensores:
