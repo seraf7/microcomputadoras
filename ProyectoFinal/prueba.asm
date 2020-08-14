@@ -176,8 +176,8 @@ sensores:
 	btfss STATUS,Z
 	call negro3				;Último piso leído 3
 	;Z=1 No está en ningún piso
-	movf piso,W			;W = caracter 1
-	movwf PORTC
+	movf giro,W				;W = piso leido anteriormente
+	movwf piso
 	return
 
 negro1:
@@ -195,6 +195,7 @@ negro3:
 	movlw d'4'
 	movwf giro 
  	return  
+
 ;Rutina para realizar la lectura de los sensores
 leer_sensores:
 	movlw b'11000001'		;Configura el ADCON0 con el reloj interno, 
