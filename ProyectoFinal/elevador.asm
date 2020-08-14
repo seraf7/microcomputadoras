@@ -30,8 +30,13 @@ val_1 equ h'33'
 val_2 equ h'34'
 pasos2 equ h'35'
 
+contI1 equ H'43'		;Contadores para interrupcion
+contI2 equ H'44'
+
 	org 0
-	goto inicio
+		goto inicio
+	org 4
+		goto interrupcion	;Vector de interrupcion
 	org 5
 
 inicio:
@@ -46,13 +51,23 @@ inicio:
 	movlw b'11110000'		;C7...C4 como entradas
 	movwf TRISC				;C3...C0 como salidas
 	clrf ADCON1				;Se configura el ADCON1 como E/S analógica
-	bcf STATUS,RP0			;Cambio al banco de memoria 1
-	clrf PORTB				;Limpia el puerto B
 
+	;Configuracion de interrupciones
+	movlw b'00000111'		;Uso de temporizador
+	movwf OPTION_REG		;Predivisor del TMR0 = 256
+
+	bcf STATUS,RP0			;Cambio al banco 0
+	bcf INTCON,T0IF			;Limpia bandera de desborde en TMR0
+	bsf INTCON,T0IE			;Habilita interrupcion por desbordamiento
+	bsf INTCON,GIE			;Habilita interrupciones generales
+	
 	;Inicializacion de variables
 	clrf boton
 	clrf giro
 	clrf piso 
+	clrf contI1				;Limpia contador
+	clrf contI2
+	clrf PORTB				;Limpia el puerto B
 
 	;Inicializacion del display
 	call inicia_lcd
@@ -164,7 +179,7 @@ sensores:
 	clrf piso				;Limpia piso
 	call leer_sensores
 	movf s1,W				;W = s1
-	sublw d'10'				;W = 10 - s1
+	sublw d'5'				;W = 10 - s1
 	btfsc STATUS,C			;Verificamos valor del carry
 	bsf piso,0				;C = 1, 10 >= s1, linea negra
 	movf s2,W				;W = s2
@@ -176,14 +191,11 @@ sensores:
 	sublw d'100'			;W = 100 - s3
 	btfss STATUS,C			;Verificamos valor del carry
 	bcf piso,2				;C = 0, 100 < s3, linea blanca
-	movlw d'60'				;W = 60
+	movlw d'80'				;W = 60
 	subwf s3,W				;W = s3 - 60
 	btfss STATUS,C			;Verificamos valor del carry
 	bcf	piso,2				;C = 0, s3 < 60, linea blanca
 	movf piso,W				;W = piso
-	movlw h'80'			;Coloca el cursor al inicio del display
-	call comando		;Envia comando
-	movf piso,W			;W = caracter 1
 	return
 ;Rutina para realizar la lectura de los sensores
 leer_sensores:
@@ -217,11 +229,8 @@ espera:
 ;;; Una revolucion-> 4*8*64=2048 pasos
 ;Rutina subir elevador
 motorArriba:
-	movlw d'1'
+	movlw d'8'
 	movwf pasos2				;pasos=512
-loopM2_2:
-	movlw d'255'
-	movwf pasos1			;pasos=512o
 loopM2:
 	;Paso 1->AB
 	bsf PORTC,0				;A=1
@@ -248,20 +257,16 @@ loopM2:
 	bcf PORTC,3				;D=0
 	call retardo_15ms
 	
-	decfsz pasos1,1
-	goto loopM2
+
 	decfsz pasos2,1
-	goto loopM2_2
+	goto loopM2
 
 	return 
 	
 ;Rutina bajar elevador
 motorAbajo:
-	movlw d'1'
+	movlw d'8'
 	movwf pasos2
-loopM1_2:
-	movlw d'255'
-	movwf pasos1				;pasos=512
 loopM1:
 	;Paso 1->AB
 	bsf PORTC,0				;A=1
@@ -287,11 +292,9 @@ loopM1:
 	bcf PORTC,2				;C=0
 	bsf PORTC,3				;D=1
 	call retardo_15ms
-	
-	decfsz pasos1,1
-	goto loopM1
+
 	decfsz pasos2,1
-	goto loopM1_2
+	goto loopM1
 	
 	return 
 
@@ -303,6 +306,77 @@ stopMotor:
 	bcf PORTC,3				;D=0
 	call retardo_15ms
 	return
+
+;Rutina de interrupcion
+interrupcion:
+	btfss INTCON,T0IF		;Verifica estado de T0IF
+	goto sal_no_fue_TMR0	;T0IF = 0, no hay desbordamietno
+	movlw d'54'				;W = 54
+	subwf contI2,W			;W = contI2 - W
+	btfsc STATUS,Z			;Verifica estado de Z
+	call pausa				;Z = 1, tiempo limite alcanzado
+	movlw d'254'			;W = 254
+	subwf contI1,W			;W = contI1 - W
+	btfss STATUS,Z			;Verifica estado de Z
+	goto inc1				;Z = 0, valores diferentes
+	goto inc2				;Z = 1, va a rutina de tiempo terminado
+inc1:
+	incf contI1				;contI1++
+	goto sal_int			;Sale de interrupcion
+inc2:
+	clrf contI1				;contI2 = 0
+	incf contI2				;contI2++
+sal_int:
+	bcf INTCON,T0IF			;Limpia bandera T0IF, sin desbordamiento
+sal_no_fue_TMR0:
+	retfie					;Retorno de la interrupcion
+
+
+pausa:
+	movlw h'01'
+	call comando		;Borrado del display
+	movlw h'83'				;Cursor al inicio del display
+	call comando
+	movlw a'F'				;Impresión de mensaje en el display
+	call datos
+	movlw a'U'				;Impresión de mensaje en el display
+	call datos
+	movlw a'E'				;Impresión de mensaje en el display
+	call datos
+	movlw a'R'				;Impresión de mensaje en el display
+	call datos
+	movlw a'A'				;Impresión de mensaje en el display
+	call datos
+	movlw a' '				;Impresión de mensaje en el display
+	call datos
+	movlw a'D'				;Impresión de mensaje en el display
+	call datos
+	movlw a'E'				;Impresión de mensaje en el display
+	call datos
+	movlw a' '				;Impresión de mensaje en el display
+	call datos
+	movlw h'c3'				;Cursor en posicion (1,2)
+	call comando
+	movlw a'S'				;Impresión de mensaje en el display
+	call datos
+	movlw a'E'				;Impresión de mensaje en el display
+	call datos
+	movlw a'R'				;Impresión de mensaje en el display
+	call datos
+	movlw a'V'				;Impresión de mensaje en el display
+	call datos
+	movlw a'I'				;Impresión de mensaje en el display
+	call datos
+	movlw a'C'				;Impresión de mensaje en el display
+	call datos
+	movlw a'I'				;Impresión de mensaje en el display
+	call datos
+	movlw a'O'				;Impresión de mensaje en el display
+	call datos
+	movlw h'01'
+	call comando		;Borrado del display
+	return
+
 
 
 ;Rutina de inicilizacion del display
