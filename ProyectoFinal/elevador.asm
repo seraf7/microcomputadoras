@@ -183,7 +183,7 @@ sensores:
 	clrf piso				;Limpia piso
 	call leer_sensores
 	movf s1,W				;W = s1
-	sublw d'5'				;W = 10 - s1
+	sublw d'30'				;W = 10 - s1
 	btfsc STATUS,C			;Verificamos valor del carry
 	goto negro1				;C = 1, 10 >= s1, linea negra
 	movf s2,W				;W = s2
@@ -341,7 +341,7 @@ interrupcion:
 	movlw d'54'				;W = 54
 	subwf contI2,W			;W = contI2 - W
 	btfsc STATUS,Z			;Verifica estado de Z
-	call pausa				;Z = 1, tiempo limite alcanzado
+	goto pausa				;Z = 1, tiempo limite alcanzado
 	movlw d'254'			;W = 254
 	subwf contI1,W			;W = contI1 - W
 	btfss STATUS,Z			;Verifica estado de Z
@@ -400,11 +400,14 @@ pausa:
 	call datos
 	movlw a'O'				;Impresión de mensaje en el display
 	call datos
-	movlw h'01'
-	call comando		;Borrado del display
 	clrf contI1
 	clrf contI2
-	return
+	call retardo_1seg
+	call retardo_1seg
+	call retardo_1seg
+	movlw h'01'
+	call comando		;Borrado del display
+	goto sal_int
 
 
 
