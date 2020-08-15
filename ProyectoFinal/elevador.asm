@@ -30,8 +30,10 @@ val_1 equ h'33'
 val_2 equ h'34'
 pasos2 equ h'35'
 
-contI1 equ H'43'		;Contadores para interrupcion
-contI2 equ H'44'
+contI1 equ H'36'		;Contadores para interrupcion
+contI2 equ H'37'
+
+giroAnt equ h'38'
 
 	org 0
 		goto inicio
@@ -145,15 +147,15 @@ busca_piso:
 	movlw h'80'			;Coloca el cursor al inicio del display
 	call comando		;Envia comando
 	call sensores		;Busca piso en el que se encuentra elevador 
-	movf piso,W			;Lee piso actual
+	movf giro,W			;Lee piso actual
 	sublw h'01'			;Valida piso 1
 	btfsc STATUS,Z		;Verifica estado de Z
 	goto piso1			;Z = 1, esta en el piso 1
-	movf piso,W			;Lee piso actual
+	movf giro,W			;Lee piso actual
 	sublw h'02'			;Valida piso 2
 	btfsc STATUS,Z		;Verifica estado de Z
 	goto piso2			;Z = 1, esta en el piso 1
-	movf piso,W			;Lee piso actual
+	movf giro,W			;Lee piso actual
 	sublw h'04'			;Valida piso 3
 	btfsc STATUS,Z		;Verifica estado de Z
 	goto piso3			;Z = 1, esta en el piso 1
@@ -163,6 +165,8 @@ piso1:
 	call datos			;Envia caracter
 	goto salida
 piso2:
+	movlw h'80'
+	call comando
 	movlw a'2'			;W = caracter 1
 	call datos			;Envia caracter
 	goto salida
@@ -181,22 +185,45 @@ sensores:
 	movf s1,W				;W = s1
 	sublw d'5'				;W = 10 - s1
 	btfsc STATUS,C			;Verificamos valor del carry
-	bsf piso,0				;C = 1, 10 >= s1, linea negra
+	goto negro1				;C = 1, 10 >= s1, linea negra
 	movf s2,W				;W = s2
-	sublw d'30'				;W = 10 - s2
+	sublw d'30'				;W = 20 - s2
 	btfsc STATUS,C			;Verificamos valor del carry
-	bsf piso,1				;C = 1, 10 >= s2, linea negra
-	bsf piso,2				;piso[2] = 1
+	goto negro2				;C = 1, 20 >= s2, linea negra
 	movf s3,W				;W = s3
 	sublw d'100'			;W = 100 - s3
 	btfss STATUS,C			;Verificamos valor del carry
-	bcf piso,2				;C = 0, 100 < s3, linea blanca
+	goto sin_piso			;C = 0, 100 < s3, linea blanca
 	movlw d'80'				;W = 60
 	subwf s3,W				;W = s3 - 60
 	btfss STATUS,C			;Verificamos valor del carry
-	bcf	piso,2				;C = 0, s3 < 60, linea blanca
-	movf piso,W				;W = piso
+	goto sin_piso			;C = 0, s3 < 60, linea blanca
+	goto negro3				;Último piso leído 3
+
+negro1:
+	bsf piso,0
+	movlw d'1'
+	movwf giro
+	movwf giroAnt 
+ 	goto salida_sensores
+negro2:
+	bsf piso,1
+	movlw d'2'
+	movwf giro
+	movwf giroAnt
+	goto salida_sensores 
+negro3:
+	bsf piso,2
+	movlw d'4'
+	movwf giro
+	movwf giroAnt
+	goto salida_sensores 
+sin_piso:
+	movf giroAnt,W			;W = ultimo valor aceptado
+	movwf giro				;giro = W
+salida_sensores:
 	return
+
 ;Rutina para realizar la lectura de los sensores
 leer_sensores:
 	movlw b'11000001'		;Configura el ADCON0 con el reloj interno, 
@@ -375,6 +402,8 @@ pausa:
 	call datos
 	movlw h'01'
 	call comando		;Borrado del display
+	clrf contI1
+	clrf contI2
 	return
 
 
